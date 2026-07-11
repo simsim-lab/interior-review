@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Vendor Meeting Checklist - AtelierSync</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-highest": "#e5e2de",
+                    "secondary-fixed-dim": "#c8c6c2",
+                    "surface": "#fcf9f5",
+                    "secondary-fixed": "#e5e2de",
+                    "primary-fixed": "#d0e6ef",
+                    "on-tertiary-container": "#989289",
+                    "on-surface-variant": "#42484a",
+                    "on-secondary": "#ffffff",
+                    "secondary": "#5f5e5b",
+                    "surface-container-low": "#f6f3ef",
+                    "on-tertiary-fixed": "#1f1b15",
+                    "tertiary": "#1a1711",
+                    "on-primary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-bright": "#fcf9f5",
+                    "on-primary-fixed-variant": "#364a51",
+                    "inverse-on-surface": "#f3f0ec",
+                    "secondary-container": "#e2dfdb",
+                    "on-primary-fixed": "#091e25",
+                    "inverse-primary": "#b4cad3",
+                    "error-container": "#ffdad6",
+                    "on-error": "#ffffff",
+                    "primary-container": "#1a2e35",
+                    "primary": "#041920",
+                    "on-error-container": "#93000a",
+                    "inverse-surface": "#31302e",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#1c1c1a",
+                    "on-secondary-fixed-variant": "#474744",
+                    "on-background": "#1c1c1a",
+                    "on-secondary-fixed": "#1c1c1a",
+                    "on-primary-container": "#81969e",
+                    "outline": "#73787a",
+                    "tertiary-fixed-dim": "#cdc5bc",
+                    "outline-variant": "#c2c7ca",
+                    "on-tertiary-fixed-variant": "#4b463f",
+                    "background": "#fcf9f5",
+                    "tertiary-container": "#2f2b24",
+                    "surface-container-high": "#eae8e4",
+                    "surface-variant": "#e5e2de",
+                    "error": "#ba1a1a",
+                    "surface-tint": "#4d6169",
+                    "on-secondary-container": "#636260",
+                    "surface-container": "#f0ede9",
+                    "tertiary-fixed": "#eae1d7",
+                    "primary-fixed-dim": "#b4cad3",
+                    "surface-dim": "#dcdad6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "container-max": "1440px",
+                    "margin-mobile": "20px",
+                    "gutter": "24px",
+                    "margin-desktop": "64px",
+                    "unit": "8px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "caption": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                    "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "caption": ["12px", {"lineHeight": "1.4", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .rating-star:hover, .rating-star.active {
+            color: #041920;
+            font-variation-settings: 'FILL' 1;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #fcf9f5;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c2c7ca;
+            border-radius: 10px;
+        }
+        
+        /* Sidebar transition styles */
+        #sidebar {
+            transition: width 0.3s ease;
+        }
+        #main-content {
+            transition: margin-left 0.3s ease;
+        }
+        
+        /* Collapsed state styles */
+        .sidebar-collapsed {
+            width: 80px !important;
+        }
+        .sidebar-collapsed .nav-text {
+            display: none;
+        }
+        .sidebar-collapsed .logo-text {
+            display: none;
+        }
+        .sidebar-collapsed .nav-item {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        .sidebar-collapsed .user-info {
+            display: none;
+        }
+        .sidebar-collapsed .bottom-actions {
+            justify-content: center;
+        }
+        .main-expanded {
+            margin-left: 80px !important;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-background font-body-md custom-scrollbar flex">
+<!-- Side Navigation Bar -->
+<aside class="w-[280px] bg-surface dark:bg-surface-dim border-r border-outline-variant h-screen fixed top-0 left-0 flex flex-col justify-between py-8 px-6 z-50 overflow-hidden" id="sidebar">
+<div>
+<div class="flex items-center justify-between mb-12">
+<span class="font-headline-lg text-headline-lg tracking-tighter text-primary dark:text-primary-fixed-dim block logo-text">AtelierSync</span>
+<button class="text-secondary hover:text-primary transition-colors focus:outline-none" id="toggle-sidebar" title="Toggle Sidebar">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+<nav class="flex flex-col gap-4">
+<a class="nav-item flex items-center gap-3 text-secondary dark:text-secondary-fixed-dim font-medium hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200 px-4 py-3 rounded-xl hover:bg-surface-container-low" href="#" title="Dashboard">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span class="nav-text">Dashboard</span>
+</a>
+<a class="nav-item flex items-center gap-3 text-secondary dark:text-secondary-fixed-dim font-medium hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200 px-4 py-3 rounded-xl hover:bg-surface-container-low" href="#" title="Space Requirements">
+<span class="material-symbols-outlined text-[20px]">architecture</span>
+<span class="nav-text">Space Requirements</span>
+</a>
+<a class="nav-item flex items-center gap-3 text-primary dark:text-primary-fixed-dim font-bold bg-surface-container-low px-4 py-3 rounded-xl" href="#" title="Meeting Manager">
+<span class="material-symbols-outlined text-[20px]">event</span>
+<span class="nav-text">Meeting Manager</span>
+</a>
+<a class="nav-item flex items-center gap-3 text-secondary dark:text-secondary-fixed-dim font-medium hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200 px-4 py-3 rounded-xl hover:bg-surface-container-low" href="#" title="Archive">
+<span class="material-symbols-outlined text-[20px]">archive</span>
+<span class="nav-text">Archive</span>
+</a>
+</nav>
+</div>
+<div class="border-t border-outline-variant pt-6 flex items-center justify-between bottom-actions">
+<button class="nav-item text-secondary dark:text-secondary-fixed-dim font-medium hover:text-primary transition-colors flex items-center gap-2" title="Settings">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="nav-text">Settings</span>
+</button>
+<div class="user-info w-10 h-10 rounded-full bg-surface-container overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="A professional studio portrait of a senior interior designer in a high-end architectural firm setting. The lighting is soft and natural, emphasizing a professional yet creative atmosphere. The background shows blurred architectural blueprints and high-end design samples in a minimalist navy and white studio environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhClMriTWDc4p35w9CToczcmMfI2bu1R6qFM8oEC0KHGyDNyLjDgzplrwVJTlp3ZqBu9E0OjtljJQjahYBmtDkoCX_VMEzZJ90sVz7XVIslMjgl_hbRpyrRyccJhXtkWMWEROGd_oDQ_DwmfgxehuglY6S2WKW21UG2TYR6wx7uvC5u0IDQ5jWdk0didP7miv8TQn10VHYu2gxQvYpm7vgn7Zv2CANj_MMff9BtOgFAdyXC6LNqKKaslB8hcwd7cgOfl0BwQ_-21oa"/>
+</div>
+</div>
+</aside>
+<div class="flex-1 ml-[280px]" id="main-content">
+<main class="max-w-container-max mx-auto px-margin-desktop py-12 grid grid-cols-12 gap-gutter">
+<!-- Header Section -->
+<div class="col-span-12 mb-8 border-b border-outline-variant pb-8">
+<div class="flex justify-between items-end">
+<div>
+<span class="font-label-md text-label-md text-secondary uppercase tracking-widest mb-2 block">Project Document #882</span>
+<h1 class="font-display-lg text-display-lg text-primary">Vendor Meeting Checklist</h1>
+<div class="flex items-center gap-6 mt-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">business</span>
+<span class="font-body-md font-semibold text-on-surface">Premium Interior Co.</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">calendar_today</span>
+<span class="font-body-md text-secondary">October 24, 2024</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">person</span>
+<span class="font-body-md text-secondary">Lead: Marcus Thorne</span>
+</div>
+</div>
+</div>
+<div class="flex gap-4">
+<button class="flex items-center gap-2 px-6 py-3 border border-outline text-primary rounded-xl font-label-md hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined text-[20px]">download</span> Export PDF
+                        </button>
+<button class="flex items-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-xl font-label-md hover:opacity-90 transition-all shadow-md">
+<span class="material-symbols-outlined text-[20px]">save</span> Save Changes
+                        </button>
+</div>
+</div>
+</div>
+<!-- Checklist Content -->
+<div class="col-span-12 lg:col-span-8 space-y-6">
+<h2 class="font-headline-md text-headline-md text-primary mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">fact_check</span> 
+                    Evaluation Framework
+                </h2>
+<!-- Checklist Items Container -->
+<div class="space-y-4">
+<!-- Item 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-[0_4px_20px_rgba(4,25,32,0.05)] border border-transparent hover:border-outline-variant transition-all">
+<div class="flex items-start gap-4">
+<div class="pt-1">
+<input class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-4">
+<h3 class="font-body-lg font-semibold text-primary">1. Our focus: Design vs Full Renovation</h3>
+<div class="flex gap-1 text-secondary-fixed-dim">
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer">star</span>
+</div>
+</div>
+<textarea class="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none min-h-[80px] resize-none" placeholder="Meeting Notes..."></textarea>
+</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-[0_4px_20px_rgba(4,25,32,0.05)] border border-transparent hover:border-outline-variant transition-all">
+<div class="flex items-start gap-4">
+<div class="pt-1">
+<input class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-4">
+<h3 class="font-body-lg font-semibold text-primary">2. Detailed Quote vs Simple One-pager</h3>
+<div class="flex gap-1 text-secondary-fixed-dim">
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer">star</span>
+</div>
+</div>
+<textarea class="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none min-h-[80px] resize-none" placeholder="Meeting Notes..."></textarea>
+</div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-[0_4px_20px_rgba(4,25,32,0.05)] border border-transparent hover:border-outline-variant transition-all">
+<div class="flex items-start gap-4">
+<div class="pt-1">
+<input class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-4">
+<h3 class="font-body-lg font-semibold text-primary">3. Scope Verification: Electrical &amp; Plumbing</h3>
+<div class="flex gap-1 text-secondary-fixed-dim">
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer">star</span>
+</div>
+</div>
+<textarea class="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none min-h-[80px] resize-none" placeholder="Meeting Notes..."></textarea>
+</div>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-[0_4px_20px_rgba(4,25,32,0.05)] border border-transparent hover:border-outline-variant transition-all">
+<div class="flex items-start gap-4">
+<div class="pt-1">
+<input checked="" class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-4">
+<h3 class="font-body-lg font-semibold text-primary">4. Extension with AC &amp; Window specs</h3>
+<div class="flex gap-1 text-secondary-fixed-dim">
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+<span class="material-symbols-outlined rating-star cursor-pointer" data-weight="fill">star</span>
+</div>
+</div>
+<textarea class="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none min-h-[80px] resize-none" placeholder="Meeting Notes...">Window frames need to be verified for noise reduction ratings.</textarea>
+</div>
+</div>
+</div>
+<!-- Iterate additional 16 items with slightly varied content based on typical vendor requirements -->
+<script>
+                        const extraItems = [
+                            "Timeline & Phasing Schedule",
+                            "Material Sourcing & Lead Times",
+                            "Subcontractor List & Liability",
+                            "Permit Responsibility & Zoning",
+                            "Waste Management & Cleanup",
+                            "Safety Protocols & Insurance",
+                            "Structural Integrity Guarantees",
+                            "Lighting Design Integration",
+                            "HVAC Calibration Plans",
+                            "Custom Joinery Specifications",
+                            "Wet Area Waterproofing Methods",
+                            "Floor Leveling & Preparation",
+                            "Exterior Finish Resilience",
+                            "Communication Cadence",
+                            "Change Order Workflow",
+                            "Final Walkthrough Terms"
+                        ];
+                        
+                        const container = document.currentScript.parentElement;
+                        extraItems.forEach((title, index) => {
+                            const itemNum = index + 5;
+                            const div = document.createElement('div');
+                            div.className = "bg-surface-container-lowest p-6 rounded-xl shadow-[0_4px_20px_rgba(4,25,32,0.05)] border border-transparent hover:border-outline-variant transition-all";
+                            div.innerHTML = `
+                                <div class="flex items-start gap-4">
+                                    <div class="pt-1">
+                                        <input type="checkbox" class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary">
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <h3 class="font-body-lg font-semibold text-primary">${itemNum}. ${title}</h3>
+                                            <div class="flex gap-1 text-secondary-fixed-dim">
+                                                <span class="material-symbols-outlined rating-star cursor-pointer">star</span>
+                                                <span class="material-symbols-outlined rating-star cursor-pointer">star</span>
+                                                <span class="material-symbols-outlined rating-star cursor-pointer">star</span>
+                                                <span class="material-symbols-outlined rating-star cursor-pointer">star</span>
+                                                <span class="material-symbols-outlined rating-star cursor-pointer">star</span>
+                                            </div>
+                                        </div>
+                                        <textarea placeholder="Meeting Notes..." class="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none min-h-[80px] resize-none"></textarea>
+                                    </div>
+                                </div>
+                            `;
+                            container.appendChild(div);
+                        });
+                    </script>
+</div>
+</div>
+<!-- Sidebar Summary Section -->
+<div class="col-span-12 lg:col-span-4 space-y-gutter">
+<!-- Project Image/Context Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_rgba(4,25,32,0.05)] overflow-hidden">
+<div class="h-48 relative">
+<img class="w-full h-full object-cover" data-alt="A luxurious interior design project view showing a modern living room with floor-to-ceiling windows, high-end navy velvet furniture, and intricate architectural ceiling details. The lighting is bright and editorial, consistent with a high-end interior design studio portfolio. Soft afternoon sunlight creates clean shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLHSUfGIVA9WsokZw5Ja-Cud8eCFTQ1lav3CacTzU5cTD7Gc2D_iRzZlvZCG6uo7CsQbjJbadOwB_EFDgqD4T0ZvyL2W6--MBrZwett7Hi6Ik--bpku7Ii_qWSOBMOD86BXvmp2ii2RFxUW_Mhn5rRfx7WB7gt-Z1Lm90ne6T1zQl3Q-IcaTviKxcX8ChIasZ3HDUxn8Xgj5qUy7VSbyhcHdAZP_0W5FwEWnMRQyMOPjVZ-1l223i5m7FM4PKlaGZVXt7vuV-D1IKg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent"></div>
+<div class="absolute bottom-4 left-4 text-on-primary">
+<p class="font-label-md uppercase tracking-widest text-[10px] opacity-80">Current Project</p>
+<p class="font-headline-md">Riverside Penthouse</p>
+</div>
+</div>
+</div>
+<!-- Score Summary Card -->
+<div class="bg-surface-container-lowest p-8 rounded-xl shadow-[0_4px_20px_rgba(4,25,32,0.05)] border-t-4 border-primary">
+<h3 class="font-headline-md text-primary mb-6">Overall Assessment</h3>
+<div class="flex items-center justify-between mb-4">
+<span class="font-body-md text-secondary">Completion Rate</span>
+<span class="font-label-md text-primary">4 / 20 items</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full mb-8">
+<div class="bg-primary h-full rounded-full transition-all duration-1000" style="width: 20%"></div>
+</div>
+<div class="text-center py-6 border-y border-outline-variant mb-8">
+<span class="font-display-lg text-primary block">3.8</span>
+<span class="font-label-md text-secondary uppercase tracking-widest">Weighted Score</span>
+</div>
+<div class="space-y-4">
+<label class="font-label-md text-primary block">Final Recommendation</label>
+<textarea class="w-full bg-surface-container-low border border-outline-variant rounded-lg p-4 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none min-h-[160px]" placeholder="Summarize your final thoughts on this vendor..."></textarea>
+<div class="flex items-center gap-3 p-4 bg-primary-container/10 rounded-xl">
+<span class="material-symbols-outlined text-primary" data-weight="fill">verified</span>
+<p class="text-caption text-on-primary-container font-medium">Currently short-listed for Phase 2</p>
+</div>
+</div>
+</div>
+<!-- Quick Actions Card -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-[0_4px_20px_rgba(4,25,32,0.05)]">
+<h4 class="font-label-md text-primary mb-4 uppercase">Next Steps</h4>
+<ul class="space-y-3">
+<li class="flex items-center gap-3 text-body-md text-secondary hover:text-primary cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-[18px]">mail</span> Email summary to client
+                        </li>
+<li class="flex items-center gap-3 text-body-md text-secondary hover:text-primary cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-[18px]">schedule</span> Book follow-up walk-through
+                        </li>
+<li class="flex items-center gap-3 text-body-md text-secondary hover:text-primary cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-[18px]">history</span> View previous vendor scores
+                        </li>
+</ul>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest dark:bg-surface-dim border-t border-outline-variant py-12 mt-20">
+<div class="max-w-container-max mx-auto px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex items-center gap-3">
+<span class="font-label-md text-label-md text-primary">AtelierSync</span>
+<span class="text-outline-variant">|</span>
+<p class="font-caption text-caption text-secondary">© 2024 AtelierSync Interior Management. All rights reserved.</p>
+</div>
+<div class="flex gap-8">
+<a class="font-label-md text-secondary hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="font-label-md text-secondary hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="font-label-md text-secondary hover:text-primary transition-colors" href="#">Contact Support</a>
+</div>
+</div>
+</footer>
+</div>
+<script>
+        // Simple Interaction logic for rating stars
+        document.querySelectorAll('.rating-star').forEach(star => {
+            star.addEventListener('click', function() {
+                const parent = this.parentElement;
+                const stars = Array.from(parent.children);
+                const index = stars.indexOf(this);
+                
+                stars.forEach((s, i) => {
+                    if (i <= index) {
+                        s.classList.add('active');
+                        s.style.fontVariationSettings = "'FILL' 1";
+                    } else {
+                        s.classList.remove('active');
+                        s.style.fontVariationSettings = "'FILL' 0";
+                    }
+                });
+            });
+        });
+
+        // Sidebar toggle logic
+        const toggleBtn = document.getElementById('toggle-sidebar');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
+
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('sidebar-collapsed');
+            mainContent.classList.toggle('main-expanded');
+        });
+    </script>
+</body></html>

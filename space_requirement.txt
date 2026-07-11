@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AtelierSync Prototype</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#e5e2de",
+                        "on-background": "#1c1c1a",
+                        "tertiary-fixed-dim": "#cdc5bc",
+                        "error": "#ba1a1a",
+                        "outline": "#73787a",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#f6f3ef",
+                        "primary-container": "#1a2e35",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#1f1b15",
+                        "primary-fixed": "#d0e6ef",
+                        "secondary-fixed": "#e5e2de",
+                        "surface-container": "#f0ede9",
+                        "secondary": "#5f5e5b",
+                        "on-secondary-fixed": "#1c1c1a",
+                        "surface-variant": "#e5e2de",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#1a1711",
+                        "tertiary-fixed": "#eae1d7",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#b4cad3",
+                        "inverse-surface": "#31302e",
+                        "inverse-on-surface": "#f3f0ec",
+                        "on-tertiary-container": "#989289",
+                        "on-secondary-container": "#636260",
+                        "on-primary-fixed-variant": "#364a51",
+                        "on-surface": "#1c1c1a",
+                        "on-secondary-fixed-variant": "#474744",
+                        "surface-bright": "#fcf9f5",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-container": "#81969e",
+                        "on-surface-variant": "#42484a",
+                        "secondary-fixed-dim": "#c8c6c2",
+                        "primary-fixed-dim": "#b4cad3",
+                        "on-primary-fixed": "#091e25",
+                        "tertiary-container": "#2f2b24",
+                        "surface-dim": "#dcdad6",
+                        "surface": "#fcf9f5",
+                        "secondary-container": "#e2dfdb",
+                        "surface-tint": "#4d6169",
+                        "background": "#fcf9f5",
+                        "on-error-container": "#93000a",
+                        "outline-variant": "#c2c7ca",
+                        "primary": "#041920",
+                        "surface-container-high": "#eae8e4",
+                        "on-tertiary-fixed-variant": "#4b463f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "margin-mobile": "20px",
+                        "margin-desktop": "64px",
+                        "gutter": "24px",
+                        "container-max": "1440px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "caption": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                        "label-md": ["14px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "500" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "caption": ["12px", { "lineHeight": "1.4", "fontWeight": "400" }]
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            background-color: #fcf9f5;
+            color: #1c1c1a;
+            -webkit-font-smoothing: antialiased;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .rating-star:hover, .rating-star.active {
+            color: #041920;
+            font-variation-settings: 'FILL' 1;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c2c7ca;
+            border-radius: 10px;
+        }
+        .shadow-soft {
+            box-shadow: 0 4px 20px rgba(4, 25, 32, 0.05);
+        }
+        .active-tab-line::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: #041920;
+        }
+        
+        /* Sidebar Toggle Styles */
+        #sidebar {
+            transition: width 0.3s ease;
+        }
+        .sidebar-collapsed {
+            width: 5rem !important; /* w-20 equivalent */
+        }
+        .sidebar-collapsed .sidebar-text, .sidebar-collapsed .nav-text {
+            display: none;
+        }
+        .sidebar-collapsed .sidebar-search, .sidebar-collapsed .logo-text, .sidebar-collapsed .user-info {
+            display: none;
+        }
+        .sidebar-collapsed .sidebar-header, .sidebar-collapsed .bottom-actions {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        .sidebar-collapsed .sidebar-nav-item, .sidebar-collapsed .nav-item {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        .sidebar-collapsed .sidebar-footer {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        #main-content {
+            transition: margin-left 0.3s ease;
+        }
+        .main-expanded {
+            margin-left: 5rem !important;
+        }
+    </style>
+    
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/history@5/umd/history.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { createRoot } = ReactDOM;
+        const { MemoryRouter, Routes, Route, Link, useNavigate, useLocation } = ReactRouterDOM;
+
+        // --- Components ---
+
+        const Sidebar = ({ isCollapsed, toggleSidebar }) => {
+            const location = useLocation();
+            const isRequirements = location.pathname === '/';
+            const isMeeting = location.pathname === '/meeting';
+
+            return (
+                <aside className={`w-[280px] bg-surface dark:bg-surface-dim border-r border-outline-variant h-screen fixed top-0 left-0 flex flex-col justify-between py-8 px-6 z-50 overflow-hidden ${isCollapsed ? 'sidebar-collapsed' : ''}`} id="sidebar">
+                    <div>
+                        <div className="flex items-center justify-between mb-12 sidebar-header">
+                            <span className="font-headline-lg text-headline-lg tracking-tighter text-primary dark:text-primary-fixed-dim block logo-text whitespace-nowrap">AtelierSync</span>
+                            <button className="text-secondary hover:text-primary transition-colors focus:outline-none flex-shrink-0 p-2 -mr-2 rounded-full hover:bg-surface-container-low" onClick={toggleSidebar} title="Toggle Sidebar">
+                                <span className="material-symbols-outlined">{isCollapsed ? 'menu' : 'menu_open'}</span>
+                            </button>
+                        </div>
+                        
+                        {!isCollapsed && (
+                            <div className="pb-6 sidebar-search">
+                                <div className="relative w-full">
+                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-lg">search</span>
+                                    <input className="w-full bg-surface-container-low border border-outline-variant rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary transition-all" placeholder="Search assets..." type="text"/>
+                                </div>
+                            </div>
+                        )}
+
+                        <nav className="flex flex-col gap-2 overflow-y-auto custom-scrollbar">
+                            <Link to="/" className={`nav-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors duration-200 font-label-md text-label-md ${isRequirements ? 'bg-primary-container/10 text-primary dark:text-primary-fixed-dim font-bold' : 'text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container-low hover:text-primary'}`} title="Space Requirements">
+                                <span className="material-symbols-outlined text-[20px]">architecture</span>
+                                <span className="nav-text whitespace-nowrap">Space Requirements</span>
+                            </Link>
+                            <Link to="/meeting" className={`nav-item flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors duration-200 font-label-md text-label-md ${isMeeting ? 'bg-primary-container/10 text-primary dark:text-primary-fixed-dim font-bold' : 'text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container-low hover:text-primary'}`} title="Meeting Manager">
+                                <span className="material-symbols-outlined text-[20px]">event</span>
+                                <span className="nav-text whitespace-nowrap">Meeting Manager</span>
+                            </Link>
+                            <a className="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-secondary dark:text-secondary-fixed-dim font-medium hover:bg-surface-container-low hover:text-primary transition-colors duration-200 font-label-md text-label-md" href="#" title="Dashboard">
+                                <span className="material-symbols-outlined text-[20px]">dashboard</span>
+                                <span className="nav-text whitespace-nowrap">Dashboard</span>
+                            </a>
+                            <a className="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-secondary dark:text-secondary-fixed-dim font-medium hover:bg-surface-container-low hover:text-primary transition-colors duration-200 font-label-md text-label-md" href="#" title="Archive">
+                                <span className="material-symbols-outlined text-[20px]">archive</span>
+                                <span className="nav-text whitespace-nowrap">Archive</span>
+                            </a>
+                        </nav>
+                    </div>
+                    
+                    <div className="border-t border-outline-variant pt-6 flex items-center justify-between bottom-actions mt-auto sidebar-footer gap-3">
+                        {!isCollapsed && (
+                             <button className="nav-item text-secondary dark:text-secondary-fixed-dim font-medium hover:text-primary transition-colors flex items-center gap-2 font-label-md text-label-md" title="Settings">
+                                <span className="material-symbols-outlined text-[20px]">settings</span>
+                                <span className="nav-text truncate">Settings</span>
+                            </button>
+                        )}
+                        <div className="user-info w-10 h-10 rounded-full border border-outline-variant bg-surface-container overflow-hidden shrink-0 flex items-center justify-center">
+                            <img className="w-full h-full object-cover" data-alt="Professional headshot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEt58MBrMCFxWt5uog6E77bgYO1DfzpoL_27M11SnJ9F8Rbiox8nvAN7AGeR5TQ-eRRFzvpIRIHWoO8DqUmIBE4GWLU0oNfKRPiIR02QIsUMyhrTfK2dVJyIGPk_Yr2ixIHOwhhzUqbI5JfyGiWyiEUR8fV_KW2wbsHAkA6DBbOfEI2nvS58aizb2XifSIGcLUTjAriK_iNvktpBfYeJgMQtLt5FYKO9_FI4T0MX3PX4tnUoiiz7hTvc-q8DlUGh9_rEVQrToiIsYf" />
+                        </div>
+                    </div>
+                </aside>
+            );
+        };
+
+        const Footer = () => (
+            <footer className="bg-surface-container-lowest dark:bg-surface-dim border-t border-outline-variant dark:border-outline py-12 mt-auto">
+                <div className="max-w-container-max mx-auto px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-8">
+                    <div className="space-y-2 text-center md:text-left flex items-center gap-3">
+                        <span className="font-label-md text-label-md text-primary dark:text-primary-fixed">AtelierSync</span>
+                        <span className="text-outline-variant hidden md:inline">|</span>
+                        <p className="font-caption text-caption text-secondary dark:text-secondary-fixed-dim max-w-sm">© 2024 AtelierSync Interior Management. All rights reserved.</p>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-8">
+                        <a className="font-label-md text-label-md text-secondary hover:text-primary transition-colors" href="#">Privacy Policy</a>
+                        <a className="font-label-md text-label-md text-secondary hover:text-primary transition-colors" href="#">Terms of Service</a>
+                        <a className="font-label-md text-label-md text-secondary hover:text-primary transition-colors" href="#">Contact Support</a>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        // --- Pages ---
+
+        const SpaceRequirements = () => {
+            const [filter, setFilter] = useState('All');
+            const spaces = ['All', 'Living Room', 'Kitchen', 'Public Bathroom', 'Master Bedroom', 'Entryway'];
+            
+            const requirements = [
+                { space: 'Living Room', category: 'Lighting', req: 'Dimmer-controlled recessed LED spotlights. Central chandelier point reinforced for 15kg load.', notes: 'Refer to electrical plan Page 4.', catColor: 'bg-primary-container/10 text-primary' },
+                { space: 'Kitchen', category: 'Outlet', req: '4 hidden pop-up outlets on the island counter. Dedicated 20A circuit for the built-in oven.', notes: 'Match backsplash stone finish.', catColor: 'bg-tertiary-container/10 text-tertiary' },
+                { space: 'Master Bedroom', category: 'Switch', req: 'Two-way bedhead switches for main light and reading lights. Minimalist brushed brass faceplates.', notes: 'Height at 600mm from AFF.', catColor: 'bg-secondary-container/30 text-secondary' },
+                { space: 'Public Bathroom', category: 'Fixture', req: 'Wall-mounted faucet with concealed body. Under-vanity waterproof LED strip with motion sensor.', notes: 'IP65 rating required for strip.', catColor: 'bg-primary-container/10 text-primary' },
+                { space: 'Entryway', category: 'Cabinetry', req: 'Floor-to-ceiling shoe cabinet with integrated bench and niche for keys. Push-to-open hardware.', notes: 'Internal shelf spacing adjustable.', catColor: 'bg-tertiary-container/10 text-tertiary' }
+            ];
+
+            const filteredReqs = filter === 'All' ? requirements : requirements.filter(r => r.space === filter);
+
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <main className="flex-grow w-full max-w-container-max mx-auto px-margin-desktop py-12 flex flex-col md:flex-row gap-12">
+                        {/* Main Canvas */}
+                        <div className="flex-grow space-y-10 min-w-0">
+                            {/* Header Section */}
+                            <section className="space-y-2">
+                                <h1 className="font-headline-lg text-headline-lg text-primary">Space Requirements</h1>
+                                <p className="font-body-md text-secondary">Detailed specifications by zone for the Park Residence project.</p>
+                            </section>
+                            
+                            {/* Horizontal Tab Filter */}
+                            <nav className="flex items-center gap-8 border-b border-outline-variant overflow-x-auto pb-px custom-scrollbar">
+                                {spaces.map(space => (
+                                    <button 
+                                        key={space}
+                                        className={`tab-btn relative py-4 font-label-md text-label-md whitespace-nowrap transition-colors ${filter === space ? 'text-primary font-bold active-tab-line' : 'text-secondary hover:text-primary'}`}
+                                        onClick={() => setFilter(space)}
+                                    >
+                                        {space}
+                                    </button>
+                                ))}
+                            </nav>
+                            
+                            {/* Table/List Content */}
+                            <div className="bg-surface-container-lowest rounded-xl shadow-soft overflow-hidden">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-surface-container-low border-b border-outline-variant">
+                                            <th className="px-6 py-4 font-label-md text-label-md text-secondary uppercase tracking-widest">Zone</th>
+                                            <th className="px-6 py-4 font-label-md text-label-md text-secondary uppercase tracking-widest">Category</th>
+                                            <th className="px-6 py-4 font-label-md text-label-md text-secondary uppercase tracking-widest">Requirements</th>
+                                            <th className="px-6 py-4 font-label-md text-label-md text-secondary uppercase tracking-widest">Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-outline-variant/30">
+                                        {filteredReqs.map((row, i) => (
+                                            <tr key={i} className="requirement-row hover:bg-surface-container/50 transition-colors cursor-pointer" onClick={(e) => { e.currentTarget.classList.add('scale-[0.99]', 'opacity-80'); setTimeout(() => e.currentTarget.classList.remove('scale-[0.99]', 'opacity-80'), 150); }}>
+                                                <td className="px-6 py-6 align-top font-label-md text-primary">{row.space}</td>
+                                                <td className="px-6 py-6 align-top">
+                                                    <span className={`${row.catColor} px-3 py-1 rounded-full text-xs font-semibold`}>{row.category}</span>
+                                                </td>
+                                                <td className="px-6 py-6 align-top font-body-md text-on-surface-variant max-w-md">{row.req}</td>
+                                                <td className="px-6 py-6 align-top font-caption text-secondary">{row.notes}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {filteredReqs.length === 0 && (
+                                    <div className="p-12 text-center text-secondary font-body-md">
+                                        No specifications found for this zone.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        
+                        {/* Sidebar / Quick Actions */}
+                        <aside className="w-full md:w-80 flex-shrink-0 space-y-6">
+                            <div className="bg-surface-container-low rounded-xl p-6 shadow-soft space-y-6 sticky top-8">
+                                <h3 className="font-label-md text-label-md text-primary border-b border-outline-variant pb-4">Actions</h3>
+                                <div className="space-y-3">
+                                    <button className="w-full flex items-center justify-center gap-3 bg-primary text-white py-3 rounded-xl hover:opacity-90 transition-all font-label-md text-label-md shadow-md active:scale-95">
+                                        <span className="material-symbols-outlined text-lg">edit_note</span> Add Note
+                                    </button>
+                                    <button className="w-full flex items-center justify-center gap-3 border border-outline text-primary py-3 rounded-xl hover:bg-surface-container-high transition-all font-label-md text-label-md active:scale-95">
+                                        <span className="material-symbols-outlined text-lg">upload_file</span> Upload Image
+                                    </button>
+                                </div>
+                                <div className="pt-4 border-t border-outline-variant space-y-4">
+                                    <p className="font-label-md text-label-md text-secondary">Reference Image</p>
+                                    <div className="aspect-video w-full rounded-lg overflow-hidden border border-outline-variant relative group cursor-pointer">
+                                        <img className="w-full h-full object-cover" data-alt="mood board" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCABSIkLlgiBYnQirLThw-svPcgv8c56mN7ISjEN4uwukQZUSDnfVLafhCDLP6QVShMPS-RQX_J8IYWc4L-r15ftOWPfN1yivQo62K9hNkUZoYZa7rmIegl9VyLYi4PVtaZ7kYQ0c9FCUr__uR0ct6-_g2l9_mqMrRQrBZZZ2YM2XNQOvltCWVfwJNC7AEx8Wk-uRODWSgEXCrkF3Fvf-J-l1RXlgAktl5QK1argN1xKsB2ggwmU3Q3E5ktJi99abiTl06WlGYVFNyM"/>
+                                        <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-white text-3xl">zoom_in</span>
+                                        </div>
+                                    </div>
+                                    <p className="font-caption text-secondary text-center">Visual style guide for all zones</p>
+                                </div>
+                                <div className="pt-4 border-t border-outline-variant">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="font-label-md text-label-md text-secondary">Completion</span>
+                                        <span className="font-label-md text-label-md text-primary">68%</span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+                                        <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{width: '68%'}}></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const StarRating = ({ initialRating }) => {
+            const [rating, setRating] = useState(initialRating);
+            return (
+                <div className="flex gap-1 text-secondary-fixed-dim">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                        <span 
+                            key={star}
+                            className={`material-symbols-outlined rating-star cursor-pointer ${star <= rating ? 'active' : ''}`}
+                            style={{ fontVariationSettings: star <= rating ? "'FILL' 1" : "'FILL' 0" }}
+                            onClick={() => setRating(star)}
+                        >
+                            star
+                        </span>
+                    ))}
+                </div>
+            );
+        };
+
+        const MeetingChecklist = () => {
+            const checklistItems = [
+                { id: 1, title: "Our focus: Design vs Full Renovation", rating: 3, notes: "" },
+                { id: 2, title: "Detailed Quote vs Simple One-pager", rating: 4, notes: "" },
+                { id: 3, title: "Scope Verification: Electrical & Plumbing", rating: 2, notes: "" },
+                { id: 4, title: "Extension with AC & Window specs", rating: 5, notes: "Window frames need to be verified for noise reduction ratings.", checked: true },
+                { id: 5, title: "Timeline & Phasing Schedule", rating: 0, notes: "" },
+                { id: 6, title: "Material Sourcing & Lead Times", rating: 0, notes: "" }
+            ];
+
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <main className="flex-grow max-w-container-max mx-auto px-margin-desktop py-12 grid grid-cols-12 gap-gutter w-full">
+                        {/* Header Section */}
+                        <div className="col-span-12 mb-8 border-b border-outline-variant pb-8">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                                <div>
+                                    <span className="font-label-md text-label-md text-secondary uppercase tracking-widest mb-2 block">Project Document #882</span>
+                                    <h1 className="font-display-lg text-display-lg text-primary">Vendor Meeting Checklist</h1>
+                                    <div className="flex flex-wrap items-center gap-6 mt-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-secondary">business</span>
+                                            <span className="font-body-md font-semibold text-on-surface">Premium Interior Co.</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-secondary">calendar_today</span>
+                                            <span className="font-body-md text-secondary">October 24, 2024</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-secondary">person</span>
+                                            <span className="font-body-md text-secondary">Lead: Marcus Thorne</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4">
+                                    <button className="flex items-center gap-2 px-6 py-3 border border-outline text-primary rounded-xl font-label-md hover:bg-surface-container-low transition-all">
+                                        <span className="material-symbols-outlined text-[20px]">download</span> Export PDF
+                                    </button>
+                                    <button className="flex items-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-xl font-label-md hover:opacity-90 transition-all shadow-md">
+                                        <span className="material-symbols-outlined text-[20px]">save</span> Save Changes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Checklist Content */}
+                        <div className="col-span-12 lg:col-span-8 space-y-6">
+                            <h2 className="font-headline-md text-headline-md text-primary mb-4 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary">fact_check</span> Evaluation Framework
+                            </h2>
+                            
+                            <div className="space-y-4">
+                                {checklistItems.map((item) => (
+                                    <div key={item.id} className="bg-surface-container-lowest p-6 rounded-xl shadow-soft border border-transparent hover:border-outline-variant transition-all">
+                                        <div className="flex items-start gap-4">
+                                            <div className="pt-1">
+                                                <input defaultChecked={item.checked} className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <h3 className="font-body-lg font-semibold text-primary">{item.id}. {item.title}</h3>
+                                                    <StarRating initialRating={item.rating} />
+                                                </div>
+                                                <textarea defaultValue={item.notes} className="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none min-h-[80px] resize-none" placeholder="Meeting Notes..."></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Sidebar Summary Section */}
+                        <div className="col-span-12 lg:col-span-4 space-y-gutter">
+                            <div className="bg-surface-container-lowest rounded-xl shadow-soft overflow-hidden">
+                                <div className="h-48 relative">
+                                    <img className="w-full h-full object-cover" data-alt="Project view" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLHSUfGIVA9WsokZw5Ja-Cud8eCFTQ1lav3CacTzU5cTD7Gc2D_iRzZlvZCG6uo7CsQbjJbadOwB_EFDgqD4T0ZvyL2W6--MBrZwett7Hi6Ik--bpku7Ii_qWSOBMOD86BXvmp2ii2RFxUW_Mhn5rRfx7WB7gt-Z1Lm90ne6T1zQl3Q-IcaTviKxcX8ChIasZ3HDUxn8Xgj5qUy7VSbyhcHdAZP_0W5FwEWnMRQyMOPjVZ-1l223i5m7FM4PKlaGZVXt7vuV-D1IKg"/>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent"></div>
+                                    <div className="absolute bottom-4 left-4 text-on-primary">
+                                        <p className="font-label-md uppercase tracking-widest text-[10px] opacity-80">Current Project</p>
+                                        <p className="font-headline-md">Riverside Penthouse</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-surface-container-lowest p-8 rounded-xl shadow-soft border-t-4 border-primary">
+                                <h3 className="font-headline-md text-primary mb-6">Overall Assessment</h3>
+                                <div className="flex items-center justify-between mb-4">
+                                    <span className="font-body-md text-secondary">Completion Rate</span>
+                                    <span className="font-label-md text-primary">4 / 20 items</span>
+                                </div>
+                                <div className="w-full bg-surface-container-high h-2 rounded-full mb-8">
+                                    <div className="bg-primary h-full rounded-full transition-all duration-1000" style={{width: '20%'}}></div>
+                                </div>
+                                <div className="text-center py-6 border-y border-outline-variant mb-8">
+                                    <span className="font-display-lg text-primary block">3.8</span>
+                                    <span className="font-label-md text-secondary uppercase tracking-widest">Weighted Score</span>
+                                </div>
+                                <div className="space-y-4">
+                                    <label className="font-label-md text-primary block">Final Recommendation</label>
+                                    <textarea className="w-full bg-surface-container-low border border-outline-variant rounded-lg p-4 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none min-h-[160px]" placeholder="Summarize your final thoughts on this vendor..."></textarea>
+                                    <div className="flex items-center gap-3 p-4 bg-primary-container/10 rounded-xl">
+                                        <span className="material-symbols-outlined text-primary" style={{fontVariationSettings: "'FILL' 1"}}>verified</span>
+                                        <p className="text-caption text-on-primary-container font-medium">Currently short-listed for Phase 2</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-surface-container-lowest p-6 rounded-xl shadow-soft">
+                                <h4 className="font-label-md text-primary mb-4 uppercase">Next Steps</h4>
+                                <ul className="space-y-3">
+                                    <li className="flex items-center gap-3 text-body-md text-secondary hover:text-primary cursor-pointer transition-colors">
+                                        <span className="material-symbols-outlined text-[18px]">mail</span> Email summary to client
+                                    </li>
+                                    <li className="flex items-center gap-3 text-body-md text-secondary hover:text-primary cursor-pointer transition-colors">
+                                        <span className="material-symbols-outlined text-[18px]">schedule</span> Book follow-up walk-through
+                                    </li>
+                                    <li className="flex items-center gap-3 text-body-md text-secondary hover:text-primary cursor-pointer transition-colors">
+                                        <span className="material-symbols-outlined text-[18px]">history</span> View previous vendor scores
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+            return (
+                <div className="bg-surface text-on-background font-body-md custom-scrollbar flex min-h-screen">
+                    <MemoryRouter>
+                        <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
+                        <div className={`flex-1 transition-all duration-300 ml-[280px] ${isSidebarCollapsed ? 'main-expanded' : ''}`} id="main-content">
+                            <Routes>
+                                <Route path="/" element={<SpaceRequirements />} />
+                                <Route path="/meeting" element={<MeetingChecklist />} />
+                            </Routes>
+                        </div>
+                    </MemoryRouter>
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
