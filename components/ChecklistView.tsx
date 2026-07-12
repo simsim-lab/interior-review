@@ -1,8 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ChecklistItem } from "@/lib/types";
-import { createClient, SUPABASE_ENABLED } from "@/lib/supabase/client";
+import {
+  canPersist,
+  nextSort,
+  insertChecklistItem,
+  updateChecklistItem,
+  deleteChecklistItem,
+} from "@/lib/mutations";
+import { checklistStats } from "@/lib/checklist";
 import StarRating from "./StarRating";
 import AutoTextarea from "./AutoTextarea";
 import Footer from "./Footer";
@@ -11,63 +18,77 @@ import Hero, { HeroChip } from "./Hero";
 const CHECKLIST_HERO =
   "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=2000&q=70";
 
+const SAVE_ERR = "저장에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+
 export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
   const [list, setList] = useState<ChecklistItem[]>(items);
   const [saving, setSaving] = useState<string | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
 
-  const supabase = useMemo(() => (SUPABASE_ENABLED ? createClient() : null), []);
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(null), 4000);
+    return () => clearTimeout(t);
+  }, [flash]);
 
   function patchLocal(id: string, patch: Partial<ChecklistItem>) {
     setList((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
   }
 
   async function persist(id: string, patch: Partial<ChecklistItem>) {
-    patchLocal(id, patch);
-    if (!supabase) return; // seed 모드: 로컬만
+    const prev = list;
+    patchLocal(id, patch); // 낙관적 반영
+    if (!canPersist) return; // seed 모드: 로컬만
     setSaving(id);
-    await supabase.from("checklist_items").update(patch).eq("id", id);
-    setSaving(null);
-  }
-
-  function newId(): string {
-    return typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `tmp-${Math.floor(performance.now() * 1000)}`;
+    try {
+      await updateChecklistItem(id, patch);
+    } catch {
+      setList(prev); // 실패 시 롤백
+      setFlash(SAVE_ERR);
+    } finally {
+      setSaving(null);
+    }
   }
 
   async function addItem() {
-    const sort = list.length + 1;
-    let id = newId();
-    if (supabase) {
-      const { data } = await supabase
-        .from("checklist_items")
-        .insert({ title: "", checked: false, rating: 0, note: null, sort })
-        .select("*")
-        .single();
-      if (data) id = data.id;
+    try {
+      const item = await insertChecklistItem({
+        title: "",
+        checked: false,
+        rating: 0,
+        note: null,
+        sort: nextSort(list),
+      });
+      setList((prev) => [...prev, item]);
+    } catch {
+      setFlash("항목 추가에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     }
-    setList((prev) => [
-      ...prev,
-      { id, title: "", checked: false, rating: 0, note: null, sort },
-    ]);
   }
 
   async function removeItem(id: string) {
-    setList((prev) => prev.filter((i) => i.id !== id));
-    if (supabase) await supabase.from("checklist_items").delete().eq("id", id);
+    const prev = list;
+    setList((p) => p.filter((i) => i.id !== id)); // 낙관적 제거
+    try {
+      await deleteChecklistItem(id);
+    } catch {
+      setList(prev); // 실패 시 복원
+      setFlash("삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    }
   }
 
-  const total = list.length;
-  const checked = list.filter((i) => i.checked).length;
-  const rated = list.filter((i) => i.rating > 0);
-  const weighted =
-    rated.length > 0
-      ? (rated.reduce((s, i) => s + i.rating, 0) / rated.length).toFixed(1)
-      : "—";
-  const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
+  const { total, checked, average, pct } = checklistStats(list);
 
   return (
     <div className="flex flex-col min-h-screen">
+      {flash && (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 flex items-center gap-2 rounded-lg bg-inverse-surface px-4 py-2.5 text-caption text-inverse-on-surface shadow-lift"
+        >
+          <span className="material-symbols-outlined text-[16px]">error</span>
+          {flash}
+        </div>
+      )}
       <Hero
         image={CHECKLIST_HERO}
         icon="lock"
@@ -175,10 +196,10 @@ export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
             </div>
             <div className="text-center py-6 border-y border-outline-variant mb-8">
               <span className="text-display-lg font-display-lg text-primary block">
-                {weighted}
+                {average}
               </span>
               <span className="text-label-md font-label-md text-secondary uppercase tracking-widest">
-                가중 평점
+                평균 평점
               </span>
             </div>
             <div className="flex items-center gap-3 p-4 bg-primary-container/10 rounded-xl">
@@ -189,7 +210,7 @@ export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
                 verified
               </span>
               <p className="text-caption text-on-primary-container font-medium">
-                {SUPABASE_ENABLED
+                {canPersist
                   ? "변경 사항은 자동 저장됩니다."
                   : "미리보기 모드 — Supabase 연결 시 저장됩니다."}
               </p>

@@ -1,18 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SpaceBundle, PhotoKind, Photo } from "@/lib/types";
 import PhotoGrid from "./PhotoGrid";
 import AutoTextarea from "./AutoTextarea";
 import Footer from "./Footer";
 import Hero, { HeroChip } from "./Hero";
-
-const HERO_IMG = {
-  requirement:
-    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=2000&q=70",
-  current:
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2000&q=70",
-} as const;
 import {
   canPersist,
   insertSpace,
@@ -23,7 +16,40 @@ import {
   updateRow,
   deleteRow,
   uploadPhoto,
+  nextSort,
 } from "@/lib/mutations";
+
+const HERO_IMG = {
+  requirement:
+    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=2000&q=70",
+  current:
+    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2000&q=70",
+} as const;
+
+// 모드별 차이(테이블·사진종류·라벨·아이콘·히어로)를 한 곳에 모은 전략 객체.
+// 산재하던 `mode === "requirement"` 분기를 cfg 참조로 대체한다.
+const MODE = {
+  requirement: {
+    photoKind: "requirement" as PhotoKind,
+    table: "requirements" as const,
+    heroImg: HERO_IMG.requirement,
+    heroChip: "요구사항 명세",
+    heroChipIcon: "architecture",
+    sectionIcon: "architecture",
+    photoLabel: "레퍼런스 사진",
+  },
+  current: {
+    photoKind: "current" as PhotoKind,
+    table: "current_state" as const,
+    heroImg: HERO_IMG.current,
+    heroChip: "현재상태 기록",
+    heroChipIcon: "photo_library",
+    sectionIcon: "photo_camera",
+    photoLabel: "현재 사진",
+  },
+} as const;
+
+const SAVE_ERR = "저장에 실패했습니다. 잠시 후 다시 시도해 주세요.";
 
 export default function SpaceView({
   bundles,
@@ -38,14 +64,23 @@ export default function SpaceView({
   title: string;
   subtitle: string;
 }) {
+  const cfg = MODE[mode];
   const [data, setData] = useState<SpaceBundle[]>(bundles);
   const [active, setActive] = useState<string>("all");
   const [newSpace, setNewSpace] = useState("");
   const [adding, setAdding] = useState(false);
   const [showSpaceInput, setShowSpaceInput] = useState(false);
   const [catFilter, setCatFilter] = useState<string>("all");
-  const photoKind: PhotoKind = mode === "requirement" ? "requirement" : "current";
-  const itemTable = mode === "requirement" ? "requirements" : "current_state";
+  const [flash, setFlash] = useState<string | null>(null);
+  const photoKind = cfg.photoKind;
+  const itemTable = cfg.table;
+
+  // 저장 실패 등 사용자 알림 토스트 (4초 후 자동 사라짐)
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(null), 4000);
+    return () => clearTimeout(t);
+  }, [flash]);
 
   const visible =
     active === "all" ? data : data.filter((b) => b.space.slug === active);
@@ -68,75 +103,100 @@ export default function SpaceView({
       : true
   );
 
+  // 선택돼 있던 분류가 사라지면(마지막 항목 삭제/분류 변경) 필터를 전체로 자동 복귀 —
+  // 어떤 칩도 active 가 아닌 채 빈 목록만 남는 死상태 방지.
+  useEffect(() => {
+    if (catFilter !== "all" && !categories.includes(catFilter)) {
+      setCatFilter("all");
+    }
+  }, [catFilter, categories]);
+
   // ─── 공간 ───
   async function addSpace() {
     const name = newSpace.trim();
     if (!name) return;
     setAdding(true);
     try {
-      const space = await insertSpace(name, data.length + 1);
+      const space = await insertSpace(name, nextSort(data.map((b) => b.space)));
       setData((d) => [
         ...d,
         { space, requirements: [], currentStates: [], photos: [] },
       ]);
       setNewSpace("");
       setShowSpaceInput(false);
+    } catch {
+      setFlash(SAVE_ERR);
     } finally {
       setAdding(false);
     }
   }
 
+  // 낙관적 변경: 실패 시 이전 상태로 롤백 + 알림.
   function renameSpace(spaceId: string, name: string) {
+    const prev = data;
     setData((d) =>
       d.map((b) =>
         b.space.id === spaceId ? { ...b, space: { ...b.space, name } } : b
       )
     );
-    updateSpace(spaceId, { name }).catch(() => {});
+    updateSpace(spaceId, { name }).catch(() => {
+      setData(prev);
+      setFlash(SAVE_ERR);
+    });
   }
 
   async function removeSpace(spaceId: string) {
     if (!confirm("이 공간과 하위 항목·사진이 모두 삭제됩니다. 진행할까요?")) return;
-    await deleteSpace(spaceId);
-    setData((d) => d.filter((b) => b.space.id !== spaceId));
+    try {
+      await deleteSpace(spaceId);
+      setData((d) => d.filter((b) => b.space.id !== spaceId));
+    } catch {
+      setFlash("삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    }
   }
 
   // ─── 항목 ───
   async function addItem(spaceId: string) {
-    const bundle = data.find((b) => b.space.id === spaceId)!;
-    if (mode === "requirement") {
-      const row = await insertRequirement({
-        space_id: spaceId,
-        category: "",
-        content: "",
-        notes: null,
-        sort: bundle.requirements.length + 1,
-      });
-      setData((d) =>
-        d.map((b) =>
-          b.space.id === spaceId
-            ? { ...b, requirements: [...b.requirements, row] }
-            : b
-        )
-      );
-    } else {
-      const row = await insertCurrentState({
-        space_id: spaceId,
-        content: "",
-        notes: null,
-        sort: bundle.currentStates.length + 1,
-      });
-      setData((d) =>
-        d.map((b) =>
-          b.space.id === spaceId
-            ? { ...b, currentStates: [...b.currentStates, row] }
-            : b
-        )
-      );
+    const bundle = data.find((b) => b.space.id === spaceId);
+    if (!bundle) return;
+    try {
+      if (mode === "requirement") {
+        const row = await insertRequirement({
+          space_id: spaceId,
+          category: "",
+          content: "",
+          notes: null,
+          sort: nextSort(bundle.requirements),
+        });
+        setData((d) =>
+          d.map((b) =>
+            b.space.id === spaceId
+              ? { ...b, requirements: [...b.requirements, row] }
+              : b
+          )
+        );
+      } else {
+        const row = await insertCurrentState({
+          space_id: spaceId,
+          content: "",
+          notes: null,
+          sort: nextSort(bundle.currentStates),
+        });
+        setData((d) =>
+          d.map((b) =>
+            b.space.id === spaceId
+              ? { ...b, currentStates: [...b.currentStates, row] }
+              : b
+          )
+        );
+      }
+    } catch {
+      setFlash(SAVE_ERR);
     }
   }
 
   function patchItem(spaceId: string, id: string, patch: Record<string, unknown>) {
+    const prev = data;
     setData((d) =>
       d.map((b) => {
         if (b.space.id !== spaceId) return b;
@@ -156,52 +216,77 @@ export default function SpaceView({
         };
       })
     );
-    updateRow(itemTable, id, patch).catch(() => {});
+    updateRow(itemTable, id, patch).catch(() => {
+      setData(prev);
+      setFlash(SAVE_ERR);
+    });
   }
 
   async function removeItem(spaceId: string, id: string) {
-    await deleteRow(itemTable, id);
-    setData((d) =>
-      d.map((b) => {
-        if (b.space.id !== spaceId) return b;
-        return mode === "requirement"
-          ? { ...b, requirements: b.requirements.filter((r) => r.id !== id) }
-          : { ...b, currentStates: b.currentStates.filter((c) => c.id !== id) };
-      })
-    );
+    try {
+      await deleteRow(itemTable, id);
+      setData((d) =>
+        d.map((b) => {
+          if (b.space.id !== spaceId) return b;
+          return mode === "requirement"
+            ? { ...b, requirements: b.requirements.filter((r) => r.id !== id) }
+            : { ...b, currentStates: b.currentStates.filter((c) => c.id !== id) };
+        })
+      );
+    } catch {
+      setFlash("삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    }
   }
 
   // ─── 사진 ───
   async function addPhoto(spaceId: string, file: File) {
-    const bundle = data.find((b) => b.space.id === spaceId)!;
-    const photo = await uploadPhoto(
-      spaceId,
-      photoKind,
-      file,
-      bundle.photos.length + 1
-    );
-    setData((d) =>
-      d.map((b) =>
-        b.space.id === spaceId ? { ...b, photos: [...b.photos, photo] } : b
-      )
-    );
+    const bundle = data.find((b) => b.space.id === spaceId);
+    if (!bundle) return;
+    try {
+      const photo = await uploadPhoto(
+        spaceId,
+        photoKind,
+        file,
+        nextSort(bundle.photos)
+      );
+      setData((d) =>
+        d.map((b) =>
+          b.space.id === spaceId ? { ...b, photos: [...b.photos, photo] } : b
+        )
+      );
+    } catch {
+      setFlash("사진 업로드에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    }
   }
 
   async function removePhoto(spaceId: string, photoId: string) {
-    await deleteRow("photos", photoId);
-    setData((d) =>
-      d.map((b) =>
-        b.space.id === spaceId
-          ? { ...b, photos: b.photos.filter((p) => p.id !== photoId) }
-          : b
-      )
-    );
+    try {
+      await deleteRow("photos", photoId);
+      setData((d) =>
+        d.map((b) =>
+          b.space.id === spaceId
+            ? { ...b, photos: b.photos.filter((p) => p.id !== photoId) }
+            : b
+        )
+      );
+    } catch {
+      setFlash("사진 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    }
   }
 
   return (
     <div className="flex flex-col min-h-screen">
+      {flash && (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 flex items-center gap-2 rounded-lg bg-inverse-surface px-4 py-2.5 text-caption text-inverse-on-surface shadow-lift"
+        >
+          <span className="material-symbols-outlined text-[16px]">error</span>
+          {flash}
+        </div>
+      )}
       <Hero
-        image={HERO_IMG[mode === "requirement" ? "requirement" : "current"]}
+        image={cfg.heroImg}
         icon="cottage"
         eyebrow="우리집 리모델링"
         title={title}
@@ -209,11 +294,7 @@ export default function SpaceView({
         meta={
           <>
             <HeroChip icon="grid_view">공간 {data.length}곳</HeroChip>
-            <HeroChip
-              icon={mode === "requirement" ? "architecture" : "photo_library"}
-            >
-              {mode === "requirement" ? "요구사항 명세" : "현재상태 기록"}
-            </HeroChip>
+            <HeroChip icon={cfg.heroChipIcon}>{cfg.heroChip}</HeroChip>
           </>
         }
       />
@@ -338,7 +419,7 @@ export default function SpaceView({
                       className="material-symbols-outlined text-[20px]"
                       style={{ fontVariationSettings: "'FILL' 1" }}
                     >
-                      {mode === "requirement" ? "architecture" : "photo_camera"}
+                      {cfg.sectionIcon}
                     </span>
                   </span>
                   {isAdmin ? (
@@ -397,7 +478,7 @@ export default function SpaceView({
                   <aside className="lift bg-surface-container-low rounded-xl p-5 shadow-soft">
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-label-md font-label-md text-secondary">
-                        {mode === "requirement" ? "레퍼런스 사진" : "현재 사진"}
+                        {cfg.photoLabel}
                       </p>
                       {isAdmin && (
                         <PhotoUploadButton
@@ -457,8 +538,10 @@ function RequirementBlock({
   onAdd: (spaceId: string) => void;
 }) {
   const spaceId = bundle.space.id;
+  // 관리자는 행을 숨기지 않는다(분류 편집 중 행이 사라지는 것 방지). 공간 단위 필터는
+  // 부모 blocks 에서 이미 적용됨. 뷰어(업체)만 행 단위로 필터링.
   const rows =
-    filterCat === "all"
+    filterCat === "all" || isAdmin
       ? bundle.requirements
       : bundle.requirements.filter(
           (r) => (r.category || "").trim() === filterCat

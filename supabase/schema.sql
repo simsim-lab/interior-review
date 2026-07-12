@@ -59,32 +59,57 @@ alter table current_state   enable row level security;
 alter table photos          enable row level security;
 alter table checklist_items enable row level security;
 
--- 공개 데이터: 누구나 읽기(anon+authenticated), 쓰기는 로그인(authenticated)만.
-create policy "spaces read"          on spaces        for select using (true);
-create policy "spaces write"         on spaces        for all to authenticated using (true) with check (true);
-create policy "requirements read"    on requirements  for select using (true);
-create policy "requirements write"   on requirements  for all to authenticated using (true) with check (true);
-create policy "current_state read"   on current_state for select using (true);
-create policy "current_state write"  on current_state for all to authenticated using (true) with check (true);
-create policy "photos read"          on photos        for select using (true);
-create policy "photos write"         on photos        for all to authenticated using (true) with check (true);
+-- 관리자 판정: JWT 이메일이 allowlist 에 있을 때만 true.
+-- ⚠️ 아래 배열을 앱의 ADMIN_EMAILS env 와 동일하게 유지할 것.
+--    그리고 Supabase Dashboard → Authentication 에서 셀프 이메일 가입을 비활성(초대만) 권장.
+create or replace function public.is_admin()
+  returns boolean
+  language sql stable
+  security definer
+  set search_path = public
+as $$
+  select lower(coalesce(auth.jwt() ->> 'email', '')) = any (array[
+    'simsim.hugh@gmail.com'
+  ]);
+$$;
 
--- 체크리스트: anon 정책을 만들지 않는다 → 비로그인은 select 조차 불가(원천 차단).
--- authenticated(admin) 만 모든 작업 허용.
-create policy "checklist admin all"  on checklist_items for all to authenticated using (true) with check (true);
+-- 공개 데이터: 누구나 읽기(anon+authenticated). 쓰기는 **관리자(is_admin) 만**.
+drop policy if exists "spaces read"          on spaces;
+drop policy if exists "spaces write"         on spaces;
+drop policy if exists "requirements read"    on requirements;
+drop policy if exists "requirements write"   on requirements;
+drop policy if exists "current_state read"   on current_state;
+drop policy if exists "current_state write"  on current_state;
+drop policy if exists "photos read"          on photos;
+drop policy if exists "photos write"         on photos;
+create policy "spaces read"          on spaces        for select using (true);
+create policy "spaces write"         on spaces        for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "requirements read"    on requirements  for select using (true);
+create policy "requirements write"   on requirements  for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "current_state read"   on current_state for select using (true);
+create policy "current_state write"  on current_state for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "photos read"          on photos        for select using (true);
+create policy "photos write"         on photos        for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- 체크리스트: anon 정책 없음 → 비로그인은 select 조차 불가. 로그인해도 **관리자만** 허용.
+drop policy if exists "checklist admin all" on checklist_items;
+create policy "checklist admin all"  on checklist_items for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- ─── Storage (사진 버킷) ───────────────────────────────────────────────────
--- 아래는 Dashboard → Storage 에서 'photos' 버킷을 Public 으로 만든 뒤,
--- 업로드 권한만 authenticated 로 제한하는 정책 예시.
+-- 'photos' 버킷은 Public 읽기, 쓰기는 관리자만.
 insert into storage.buckets (id, name, public)
 values ('photos', 'photos', true)
 on conflict (id) do nothing;
 
+drop policy if exists "photos bucket public read"  on storage.objects;
+drop policy if exists "photos bucket admin write"  on storage.objects;
+drop policy if exists "photos bucket admin update" on storage.objects;
+drop policy if exists "photos bucket admin delete" on storage.objects;
 create policy "photos bucket public read"
   on storage.objects for select using (bucket_id = 'photos');
 create policy "photos bucket admin write"
-  on storage.objects for insert to authenticated with check (bucket_id = 'photos');
+  on storage.objects for insert to authenticated with check (bucket_id = 'photos' and public.is_admin());
 create policy "photos bucket admin update"
-  on storage.objects for update to authenticated using (bucket_id = 'photos');
+  on storage.objects for update to authenticated using (bucket_id = 'photos' and public.is_admin());
 create policy "photos bucket admin delete"
-  on storage.objects for delete to authenticated using (bucket_id = 'photos');
+  on storage.objects for delete to authenticated using (bucket_id = 'photos' and public.is_admin());

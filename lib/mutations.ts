@@ -1,16 +1,19 @@
 // 브라우저에서 admin(authenticated) 세션으로 실행하는 쓰기 작업.
 // Supabase 미연결(seed 모드)이면 null 클라이언트 → 호출부에서 로컬 상태만 갱신.
 import { createClient, SUPABASE_ENABLED } from "./supabase/client";
-import type { Requirement, CurrentState, Photo, Space } from "./types";
+import type {
+  Requirement,
+  CurrentState,
+  Photo,
+  Space,
+  ChecklistItem,
+} from "./types";
+import { newId, nextSort } from "./util";
 
+// 순수 유틸은 lib/util.ts 에 있고 여기서 재-export (기존 import 경로 호환).
+export { newId, nextSort };
 export const canPersist = SUPABASE_ENABLED;
 const sb = () => createClient();
-
-function newId(): string {
-  return typeof crypto !== "undefined" && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `tmp-${Math.floor(performance.now() * 1000)}`;
-}
 
 export async function insertSpace(name: string, sort: number): Promise<Space> {
   const slug = `sp-${newId().slice(0, 8)}`;
@@ -117,4 +120,33 @@ export async function uploadPhoto(
     .single();
   if (error) throw error;
   return data as Photo;
+}
+
+// ─── 체크리스트 (admin 전용) ────────────────────────────────────────────────
+export async function insertChecklistItem(
+  row: Omit<ChecklistItem, "id">
+): Promise<ChecklistItem> {
+  if (!canPersist) return { ...row, id: newId() };
+  const { data, error } = await sb()
+    .from("checklist_items")
+    .insert(row)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as ChecklistItem;
+}
+
+export async function updateChecklistItem(
+  id: string,
+  patch: Partial<ChecklistItem>
+): Promise<void> {
+  if (!canPersist) return;
+  const { error } = await sb().from("checklist_items").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteChecklistItem(id: string): Promise<void> {
+  if (!canPersist) return;
+  const { error } = await sb().from("checklist_items").delete().eq("id", id);
+  if (error) throw error;
 }
