@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Space } from "@/lib/types";
 import Spinner from "./Spinner";
@@ -8,6 +8,7 @@ import Spinner from "./Spinner";
 /**
  * 공간 편집 모달 — 공간 추가 / 이름 수정 / 삭제를 한 곳에서.
  * (기존 인라인 "공간 추가" 버튼을 대체.) 조상 transform 영향을 피하려 body 로 Portal.
+ * 접근성: 컨테이너 레벨 ESC·Tab 포커스 트랩·닫힐 때 이전 포커스 복원.
  */
 export default function SpaceManager({
   spaces,
@@ -24,6 +25,22 @@ export default function SpaceManager({
 }) {
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // 열릴 때 포커스를 잡고 있던 요소를 기억 → 닫힐 때 복원.
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    return () => prev?.focus?.();
+  }, []);
+
+  // ESC 는 문서 레벨로 — 버튼 disabled 등으로 포커스가 dialog 밖으로 빠져도 닫히게.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const add = async () => {
     const name = newName.trim();
@@ -37,6 +54,28 @@ export default function SpaceManager({
     }
   };
 
+  // Tab 포커스 트랩(ESC 는 위 문서 레벨 리스너가 처리).
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== "Tab") return;
+    const root = dialogRef.current;
+    if (!root) return;
+    const items = Array.from(
+      root.querySelectorAll<HTMLElement>(
+        'button, input, select, textarea, [href], [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter((el) => !el.hasAttribute("disabled"));
+    if (items.length === 0) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   if (typeof document === "undefined") return null;
 
   return createPortal(
@@ -45,15 +84,18 @@ export default function SpaceManager({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="공간 편집"
         className="w-full max-w-md rounded-xl bg-surface-container-lowest p-6 shadow-lift"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={onKeyDown}
       >
         <div className="mb-5 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-headline-md font-headline-md text-primary">
             <span
+              aria-hidden="true"
               className="material-symbols-outlined"
               style={{ color: "var(--ochre)", fontVariationSettings: "'FILL' 1" }}
             >
@@ -64,9 +106,12 @@ export default function SpaceManager({
           <button
             onClick={onClose}
             title="닫기"
+            aria-label="닫기"
             className="text-secondary hover:text-primary"
           >
-            <span className="material-symbols-outlined">close</span>
+            <span aria-hidden="true" className="material-symbols-outlined">
+              close
+            </span>
           </button>
         </div>
 
@@ -90,9 +135,12 @@ export default function SpaceManager({
               <button
                 onClick={() => onRemove(s.id)}
                 title="공간 삭제"
+                aria-label={`${s.name} 공간 삭제`}
                 className="shrink-0 text-secondary hover:text-error"
               >
-                <span className="material-symbols-outlined text-[20px]">delete</span>
+                <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
+                  delete
+                </span>
               </button>
             </li>
           ))}
@@ -106,9 +154,9 @@ export default function SpaceManager({
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") add();
-              if (e.key === "Escape") onClose();
             }}
             placeholder="새 공간 이름"
+            aria-label="새 공간 이름"
             className="field min-w-0 flex-1"
           />
           <button
@@ -119,7 +167,9 @@ export default function SpaceManager({
             {adding ? (
               <Spinner size={18} />
             ) : (
-              <span className="material-symbols-outlined text-[18px]">add</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                add
+              </span>
             )}
             {adding ? "추가 중…" : "추가"}
           </button>

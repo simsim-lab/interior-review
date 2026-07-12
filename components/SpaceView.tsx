@@ -20,6 +20,7 @@ import {
   pruneSelection,
   matchesFilter,
 } from "@/lib/filter";
+import { relocateRow } from "@/lib/rows";
 import { revertPatch } from "@/lib/util";
 import {
   canPersist,
@@ -287,33 +288,9 @@ export default function SpaceView({
     const target = data.find((b) => b.space.id === toSpaceId);
     const newSort = target ? nextSort(rowsOf(target)) : origSort;
 
-    // 특정 행 하나만 from→to 로 옮기는 함수형 업데이트(무관한 행은 건드리지 않음).
+    // 특정 행 하나만 from→to 로 옮기는 함수형 업데이트(순수 relocateRow 위임).
     const relocate = (from: string, to: string, sort: number) =>
-      setData((d) => {
-        const s = d.find((b) => b.space.id === from);
-        const moved = s && rowsOf(s).find((r) => r.id === id);
-        if (!moved) return d;
-        const item = { ...moved, space_id: to, sort };
-        return d.map((b) => {
-          if (b.space.id === from) {
-            return isReq
-              ? { ...b, requirements: b.requirements.filter((r) => r.id !== id) }
-              : {
-                  ...b,
-                  currentStates: b.currentStates.filter((c) => c.id !== id),
-                };
-          }
-          if (b.space.id === to) {
-            return isReq
-              ? { ...b, requirements: [...b.requirements, item as Requirement] }
-              : {
-                  ...b,
-                  currentStates: [...b.currentStates, item as CurrentState],
-                };
-          }
-          return b;
-        });
-      });
+      setData((d) => relocateRow(d, mode, id, from, to, sort));
 
     relocate(fromSpaceId, toSpaceId, newSort); // 낙관적 이동
     updateRow(itemTable, id, { space_id: toSpaceId, sort: newSort }).catch(() => {
@@ -447,7 +424,7 @@ export default function SpaceView({
 
         {/* 통합 테이블 */}
         <div className="rise bg-surface-container-lowest rounded-xl shadow-soft overflow-hidden">
-          <div className="overflow-x-auto custom-scrollbar">
+          <div className="table-scroll overflow-x-auto custom-scrollbar">
             <table className={`w-full ${cfg.minWidth} text-left border-collapse`}>
               <thead>
                 <tr className="bg-surface-container-low border-b border-outline-variant">
@@ -502,6 +479,7 @@ export default function SpaceView({
                               moveRowSpace(b.space.id, r.id, e.target.value)
                             }
                             aria-label="공간"
+                            title={b.space.name}
                             className="space-select"
                           >
                             {data.map((sb) => (
@@ -589,9 +567,13 @@ export default function SpaceView({
                         <button
                           onClick={() => removeItem(b.space.id, r.id)}
                           title="삭제"
+                          aria-label="항목 삭제"
                           className="text-secondary hover:text-error"
                         >
-                          <span className="material-symbols-outlined text-[20px]">
+                          <span
+                            aria-hidden="true"
+                            className="material-symbols-outlined text-[20px]"
+                          >
                             close
                           </span>
                         </button>

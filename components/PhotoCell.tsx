@@ -47,12 +47,17 @@ export default function PhotoCell({
               type="button"
               onClick={() => setOpen(idx)}
               title="크게 보기"
+              aria-label={p.caption ? `사진 크게 보기: ${p.caption}` : "사진 크게 보기"}
               className="block h-12 w-12 overflow-hidden rounded-md border border-outline-variant"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={p.url}
                 alt={p.caption ?? ""}
+                width={48}
+                height={48}
+                loading="lazy"
+                decoding="async"
                 className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
               />
             </button>
@@ -61,9 +66,12 @@ export default function PhotoCell({
                 type="button"
                 onClick={() => onRemove(p.id)}
                 title="사진 삭제"
-                className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 place-items-center rounded-full bg-inverse-surface text-inverse-on-surface group-hover:grid"
+                aria-label="사진 삭제"
+                className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 place-items-center rounded-full bg-inverse-surface text-inverse-on-surface group-hover:grid group-focus-within:grid"
               >
-                <span className="material-symbols-outlined text-[13px]">close</span>
+                <span aria-hidden="true" className="material-symbols-outlined text-[13px]">
+                  close
+                </span>
               </button>
             )}
           </span>
@@ -75,12 +83,15 @@ export default function PhotoCell({
             onClick={() => ref.current?.click()}
             disabled={busy}
             title="사진 추가"
+            aria-label={busy ? "업로드 중" : "사진 추가"}
             className="grid h-12 w-12 place-items-center rounded-md border border-dashed border-outline-variant text-secondary hover:border-primary hover:text-primary disabled:opacity-50"
           >
             {busy ? (
               <Spinner size={16} />
             ) : (
-              <span className="material-symbols-outlined text-[18px]">add_a_photo</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                add_a_photo
+              </span>
             )}
           </button>
         )}

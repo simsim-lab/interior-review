@@ -276,13 +276,18 @@ body {
   color: var(--wood);
   background-color: #f6efe1;
 }
-/* 활성 = 앱 공통 오커 액센트(탭 밑줄·별점과 같은 언어) — 헤더에 과하지 않게 */
-.filter-head[data-active="true"] {
-  color: var(--ochre);
-  background-color: rgba(176, 125, 52, 0.1);
-  border-color: rgba(176, 125, 52, 0.34);
+.filter-head:focus-visible {
+  outline: none;
+  border-color: var(--ochre);
+  box-shadow: 0 0 0 2px rgba(176, 125, 52, 0.22);
 }
-/* 활성 선택 개수 배지 — 오커 필 */
+/* 활성 = 오커 틴트 배경 + 진한 웜브라운 텍스트(WCAG AA 대비 확보) + 오커 보더 */
+.filter-head[data-active="true"] {
+  color: #6e4a17; /* on-tertiary-container — 오커 틴트 위에서 대비 ~7:1 */
+  background-color: rgba(176, 125, 52, 0.15);
+  border-color: rgba(176, 125, 52, 0.4);
+}
+/* 활성 선택 개수 배지 — 진한 웜브라운 필(대비 확보) */
 .filter-badge {
   display: inline-grid;
   place-items: center;
@@ -294,7 +299,7 @@ body {
   font-weight: 700;
   line-height: 1;
   color: #fbf7ee;
-  background-color: var(--ochre);
+  background-color: #6e4a17;
 }
 /* 드롭다운 패널 */
 .filter-panel {
@@ -326,6 +331,9 @@ body {
   background-color: transparent;
   border: 1px solid #ddd0ba;
   cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis; /* 긴 공간명은 … 로 잘림(+ JSX title 로 전체 이름 툴팁) */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234a3a29' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.5rem center;
@@ -342,6 +350,24 @@ body {
   outline: none;
   border-color: var(--ochre);
   box-shadow: 0 0 0 2px rgba(176, 125, 52, 0.2);
+}
+
+/* 가로 스크롤 그림자 단서 — 좌/우에 콘텐츠가 더 있으면 가장자리에 옅은 그림자.
+   local 커버(카드색)가 스크롤 끝에서 그림자를 가려, 넘칠 때만 자동 표시(모바일). */
+.table-scroll {
+  background:
+    linear-gradient(to right, #fefcf7 32%, rgba(254, 252, 247, 0)) left center / 30px
+      100% no-repeat local,
+    linear-gradient(to left, #fefcf7 32%, rgba(254, 252, 247, 0)) right center / 30px
+      100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(60, 44, 24, 0.16), rgba(60, 44, 24, 0))
+      left center / 14px 100% no-repeat scroll,
+    radial-gradient(
+        farthest-side at 100% 50%,
+        rgba(60, 44, 24, 0.16),
+        rgba(60, 44, 24, 0)
+      )
+      right center / 14px 100% no-repeat scroll;
 }
 
 /* ─── production 보호 layer (hakgun-viewer 패턴) ────────────────────────── */

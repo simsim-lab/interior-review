@@ -55,7 +55,7 @@ export default defineConfig({
     {
       name: "admin", // bypass ON — 관리자 화면/편집 (lightbox 는 사진 업로드가 admin 전용)
       use: { baseURL: `http://localhost:${ADMIN_PORT}` },
-      testMatch: /(admin-checklist|admin-editing|lightbox)\.spec\.ts/,
+      testMatch: /(admin-checklist|admin-editing|lightbox|filter)\.spec\.ts/,
     },
   ],
 });

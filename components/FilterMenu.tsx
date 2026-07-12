@@ -56,6 +56,7 @@ export default function FilterMenu({
         aria-haspopup="true"
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
+        aria-label={`${label} 필터${active ? `, ${selected.length}개 선택됨` : ""}`}
         data-active={active}
         onClick={() => setOpen((o) => !o)}
         className="filter-head"
@@ -65,16 +66,21 @@ export default function FilterMenu({
           {label}
         </span>
         <span
+          aria-hidden="true"
           className="material-symbols-outlined text-[15px]"
           style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}
         >
           filter_alt
         </span>
-        {active && <span className="filter-badge">{selected.length}</span>}
+        {active && (
+          <span aria-hidden="true" className="filter-badge">
+            {selected.length}
+          </span>
+        )}
       </button>
 
       {open && (
-        <div id={panelId} role="menu" className="filter-panel">
+        <div id={panelId} role="group" aria-label={`${label} 필터`} className="filter-panel">
           <div className="flex items-center justify-between px-3 pb-2 pt-1">
             <span className="text-caption font-semibold text-secondary">
               {label} 필터
