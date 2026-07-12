@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Photo } from "@/lib/types";
 
 /**
@@ -58,8 +59,11 @@ export default function Lightbox({
 
   const photo = photos[i];
   if (!photo) return null;
+  if (typeof document === "undefined") return null;
 
-  return (
+  // document.body 로 Portal — 조상의 CSS transform(.rise 등장 애니메이션 등)이
+  // position:fixed 의 기준을 바꿔 전체화면이 깨지는 것을 방지.
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] bg-primary/95 flex items-center justify-center select-none"
       onClick={onClose}
@@ -148,6 +152,7 @@ export default function Lightbox({
           background: rgba(255, 255, 255, 0.25);
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 }
