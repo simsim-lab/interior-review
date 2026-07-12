@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient, SUPABASE_ENABLED } from "@/lib/supabase/client";
+import Spinner from "@/components/Spinner";
 
 function LoginForm() {
   const router = useRouter();
@@ -26,11 +27,12 @@ function LoginForm() {
     setBusy(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
     if (error) {
+      setBusy(false);
       setError("로그인 실패: 이메일 또는 비밀번호를 확인하세요.");
       return;
     }
+    // 성공: busy 를 유지해 리다이렉트+체크리스트 데이터 로딩까지 스피너를 이어간다.
     router.push(next);
     router.refresh();
   }
@@ -100,7 +102,11 @@ function LoginForm() {
             disabled={busy}
             className="w-full flex items-center justify-center gap-2 bg-primary text-on-primary py-3 rounded-xl hover:opacity-90 transition-all text-label-md font-label-md shadow-md active:scale-95 disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-lg">login</span>
+            {busy ? (
+              <Spinner size={18} />
+            ) : (
+              <span className="material-symbols-outlined text-lg">login</span>
+            )}
             {busy ? "확인 중…" : "로그인"}
           </button>
         </form>

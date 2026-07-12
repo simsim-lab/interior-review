@@ -125,6 +125,23 @@ body {
   }
 }
 
+/* ─── 로딩 스피너 — "처리 중" 회전 링 ──────────────────────────────────── */
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spinner {
+  animation: spinner-rotate 0.7s linear infinite;
+  transform-origin: center;
+}
+/* 로딩 상태는 필수 정보라 완전히 멈추진 않되, 모션 민감 사용자에겐 느리게. */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 1.6s;
+  }
+}
+
 /* 카드 호버 리프트 */
 .lift {
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),

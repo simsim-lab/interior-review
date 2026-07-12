@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient, SUPABASE_ENABLED } from "@/lib/supabase/client";
+import Spinner from "./Spinner";
+import NavSpinner from "./NavSpinner";
 
 type NavItem = { href: string; label: string; icon: string; adminOnly?: boolean };
 
@@ -24,17 +26,23 @@ export default function AppShell({
 }) {
   const [collapsed, setCollapsed] = useState(false); // 데스크탑 접기
   const [mobileOpen, setMobileOpen] = useState(false); // 모바일 드로어
+  const [loggingOut, setLoggingOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
   const items = NAV.filter((n) => !n.adminOnly || isAdmin);
 
   async function logout() {
-    if (SUPABASE_ENABLED) {
-      await createClient().auth.signOut();
+    setLoggingOut(true); // 리다이렉트까지 스피너 유지 (성공 시 컴포넌트가 갱신됨)
+    try {
+      if (SUPABASE_ENABLED) {
+        await createClient().auth.signOut();
+      }
+      router.push("/");
+      router.refresh();
+    } catch {
+      setLoggingOut(false); // 실패 시 버튼 복구
     }
-    router.push("/");
-    router.refresh();
   }
 
   const BrandMark = (
@@ -141,14 +149,7 @@ export default function AppShell({
                   {active && (!collapsed || mobileOpen) && (
                     <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-[var(--ochre)]" />
                   )}
-                  <span
-                    className="material-symbols-outlined text-[20px]"
-                    style={
-                      active ? { fontVariationSettings: "'FILL' 1" } : undefined
-                    }
-                  >
-                    {item.icon}
-                  </span>
+                  <NavSpinner icon={item.icon} active={active} />
                   <span
                     className={`whitespace-nowrap ${
                       collapsed && !mobileOpen ? "md:hidden" : ""
@@ -176,9 +177,11 @@ export default function AppShell({
                 </p>
                 <button
                   onClick={logout}
-                  className="text-label-md text-on-primary hover:underline"
+                  disabled={loggingOut}
+                  className="flex items-center gap-1.5 text-label-md text-on-primary hover:underline disabled:opacity-70"
                 >
-                  로그아웃
+                  {loggingOut && <Spinner size={14} />}
+                  {loggingOut ? "로그아웃 중…" : "로그아웃"}
                 </button>
               </div>
               <span className="material-symbols-outlined shrink-0 text-on-primary/80">

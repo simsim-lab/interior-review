@@ -6,6 +6,7 @@ import PhotoGrid from "./PhotoGrid";
 import AutoTextarea from "./AutoTextarea";
 import Footer from "./Footer";
 import Hero, { HeroChip } from "./Hero";
+import Spinner from "./Spinner";
 import { requirementCategories, effectiveCategory } from "@/lib/filter";
 import { revertPatch } from "@/lib/util";
 import {
@@ -71,6 +72,7 @@ export default function SpaceView({
   const [active, setActive] = useState<string>("all");
   const [newSpace, setNewSpace] = useState("");
   const [adding, setAdding] = useState(false);
+  const [addingItem, setAddingItem] = useState<string | null>(null); // 항목 추가 중인 공간 id
   const [showSpaceInput, setShowSpaceInput] = useState(false);
   const [catFilter, setCatFilter] = useState<string>("all");
   const [flash, setFlash] = useState<{ msg: string } | null>(null);
@@ -153,6 +155,7 @@ export default function SpaceView({
   async function addItem(spaceId: string) {
     const bundle = data.find((b) => b.space.id === spaceId);
     if (!bundle) return;
+    setAddingItem(spaceId);
     try {
       if (mode === "requirement") {
         const row = await insertRequirement({
@@ -186,6 +189,8 @@ export default function SpaceView({
       }
     } catch {
       notify(SAVE_ERR);
+    } finally {
+      setAddingItem(null);
     }
   }
 
@@ -352,8 +357,12 @@ export default function SpaceView({
                       disabled={adding || !newSpace.trim()}
                       className="flex items-center gap-1 bg-primary text-on-primary px-4 py-2 rounded-lg text-label-md font-label-md hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"
                     >
-                      <span className="material-symbols-outlined text-[18px]">check</span>
-                      확인
+                      {adding ? (
+                        <Spinner size={18} />
+                      ) : (
+                        <span className="material-symbols-outlined text-[18px]">check</span>
+                      )}
+                      {adding ? "추가 중…" : "확인"}
                     </button>
                     <button
                       onClick={() => {
@@ -466,6 +475,7 @@ export default function SpaceView({
                         onPatch={patchItem}
                         onRemove={removeItem}
                         onAdd={addItem}
+                        adding={addingItem === b.space.id}
                       />
                     ) : (
                       <CurrentStateBlock
@@ -474,6 +484,7 @@ export default function SpaceView({
                         onPatch={patchItem}
                         onRemove={removeItem}
                         onAdd={addItem}
+                        adding={addingItem === b.space.id}
                       />
                     )}
                   </div>
@@ -533,6 +544,7 @@ function RequirementBlock({
   onPatch,
   onRemove,
   onAdd,
+  adding,
 }: {
   bundle: SpaceBundle;
   isAdmin: boolean;
@@ -540,6 +552,7 @@ function RequirementBlock({
   onPatch: (spaceId: string, id: string, patch: Record<string, unknown>) => void;
   onRemove: (spaceId: string, id: string) => void;
   onAdd: (spaceId: string) => void;
+  adding: boolean;
 }) {
   const spaceId = bundle.space.id;
   // 관리자는 행을 숨기지 않는다(분류 편집 중 행이 사라지는 것 방지). 공간 단위 필터는
@@ -637,7 +650,13 @@ function RequirementBlock({
           )}
         </tbody>
       </table>
-      {isAdmin && <AddItemButton onClick={() => onAdd(spaceId)} label="요구사항 추가" />}
+      {isAdmin && (
+        <AddItemButton
+          onClick={() => onAdd(spaceId)}
+          label="요구사항 추가"
+          busy={adding}
+        />
+      )}
     </div>
   );
 }
@@ -649,12 +668,14 @@ function CurrentStateBlock({
   onPatch,
   onRemove,
   onAdd,
+  adding,
 }: {
   bundle: SpaceBundle;
   isAdmin: boolean;
   onPatch: (spaceId: string, id: string, patch: Record<string, unknown>) => void;
   onRemove: (spaceId: string, id: string) => void;
   onAdd: (spaceId: string) => void;
+  adding: boolean;
 }) {
   const spaceId = bundle.space.id;
   if (!isAdmin && bundle.currentStates.length === 0) {
@@ -728,19 +749,38 @@ function CurrentStateBlock({
           )}
         </tbody>
       </table>
-      {isAdmin && <AddItemButton onClick={() => onAdd(spaceId)} label="현재상태 추가" />}
+      {isAdmin && (
+        <AddItemButton
+          onClick={() => onAdd(spaceId)}
+          label="현재상태 추가"
+          busy={adding}
+        />
+      )}
     </div>
   );
 }
 
-function AddItemButton({ onClick, label }: { onClick: () => void; label: string }) {
+function AddItemButton({
+  onClick,
+  label,
+  busy,
+}: {
+  onClick: () => void;
+  label: string;
+  busy: boolean;
+}) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center justify-center gap-2 py-4 text-label-md font-label-md text-primary border-t border-outline-variant hover:bg-surface-container-low transition-colors"
+      disabled={busy}
+      className="w-full flex items-center justify-center gap-2 py-4 text-label-md font-label-md text-primary border-t border-outline-variant hover:bg-surface-container-low transition-colors disabled:opacity-60"
     >
-      <span className="material-symbols-outlined text-[18px]">add</span>
-      {label}
+      {busy ? (
+        <Spinner size={18} />
+      ) : (
+        <span className="material-symbols-outlined text-[18px]">add</span>
+      )}
+      {busy ? "추가 중…" : label}
     </button>
   );
 }
@@ -755,7 +795,11 @@ function PhotoUploadButton({ onSelect }: { onSelect: (file: File) => void }) {
         disabled={busy}
         className="flex items-center gap-1 text-label-md text-primary hover:underline disabled:opacity-50"
       >
-        <span className="material-symbols-outlined text-[18px]">upload</span>
+        {busy ? (
+          <Spinner size={18} />
+        ) : (
+          <span className="material-symbols-outlined text-[18px]">upload</span>
+        )}
         {busy ? "업로드 중…" : "사진 추가"}
       </button>
       <input
