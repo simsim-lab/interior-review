@@ -1,7 +1,6 @@
 /* 웹폰트는 app/layout.tsx 의 <head><link> 으로 로드 (Turbopack @import 이슈 회피). */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.ts";
 
 .material-symbols-outlined {
   font-family: "Material Symbols Outlined";
