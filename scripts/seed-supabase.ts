@@ -22,7 +22,19 @@ if (!url || !key) {
 
 const sb = createClient(url, key, { auth: { persistSession: false } });
 
+// 전체 행 삭제용 필터 (Supabase 는 delete 시 필터 필수).
+const ALL = "00000000-0000-0000-0000-000000000000";
+
 async function main() {
+  // ── 완전 교체: 기존 데이터 비우기 ────────────────────────────────
+  // spaces 삭제 시 requirements/current_state/photos 는 FK ON DELETE CASCADE 로 함께 삭제됨.
+  {
+    const c = await sb.from("checklist_items").delete().neq("id", ALL);
+    if (c.error) throw c.error;
+    const s = await sb.from("spaces").delete().neq("id", ALL);
+    if (s.error) throw s.error;
+  }
+
   // 공간 먼저 (FK 대상). seed 의 문자열 id 대신 slug 로 매핑해 uuid 재생성.
   const spaceIdBySlug: Record<string, string> = {};
   for (const s of SEED_SPACES) {
@@ -39,7 +51,7 @@ async function main() {
   for (const s of SEED_SPACES) slugById[s.id] = s.slug;
   const mapSpace = (oldId: string) => spaceIdBySlug[slugById[oldId]];
 
-  await sb.from("requirements").insert(
+  const rq = await sb.from("requirements").insert(
     SEED_REQUIREMENTS.map((r) => ({
       space_id: mapSpace(r.space_id),
       category: r.category,
@@ -48,24 +60,34 @@ async function main() {
       sort: r.sort,
     }))
   );
-  await sb.from("current_state").insert(
-    SEED_CURRENT_STATES.map((c) => ({
-      space_id: mapSpace(c.space_id),
-      content: c.content,
-      notes: c.notes,
-      sort: c.sort,
-    }))
-  );
-  await sb.from("photos").insert(
-    SEED_PHOTOS.map((p) => ({
-      space_id: mapSpace(p.space_id),
-      kind: p.kind,
-      url: p.url,
-      caption: p.caption,
-      sort: p.sort,
-    }))
-  );
-  await sb.from("checklist_items").insert(
+  if (rq.error) throw rq.error;
+
+  if (SEED_CURRENT_STATES.length) {
+    const cs = await sb.from("current_state").insert(
+      SEED_CURRENT_STATES.map((c) => ({
+        space_id: mapSpace(c.space_id),
+        content: c.content,
+        notes: c.notes,
+        sort: c.sort,
+      }))
+    );
+    if (cs.error) throw cs.error;
+  }
+
+  if (SEED_PHOTOS.length) {
+    const ph = await sb.from("photos").insert(
+      SEED_PHOTOS.map((p) => ({
+        space_id: mapSpace(p.space_id),
+        kind: p.kind,
+        url: p.url,
+        caption: p.caption,
+        sort: p.sort,
+      }))
+    );
+    if (ph.error) throw ph.error;
+  }
+
+  const ck = await sb.from("checklist_items").insert(
     SEED_CHECKLIST.map((c) => ({
       title: c.title,
       checked: c.checked,
@@ -74,8 +96,11 @@ async function main() {
       sort: c.sort,
     }))
   );
+  if (ck.error) throw ck.error;
 
-  console.log("seed 적재 완료");
+  console.log(
+    `seed 적재 완료 — 공간 ${SEED_SPACES.length}, 요구사항 ${SEED_REQUIREMENTS.length}, 체크리스트 ${SEED_CHECKLIST.length}`
+  );
 }
 
 main().catch((e) => {

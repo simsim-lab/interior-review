@@ -1,5 +1,6 @@
 // Supabase 미연결 시 사용하는 로컬 데모 데이터 (레이아웃/스타일 확인용).
-// Supabase 연결 후에는 scripts/seed-supabase.ts 로 동일 데이터를 DB에 적재할 수 있다.
+// 실제 데이터는 인테리어_시공_체크리스트.xlsx 를 그대로 옮긴 것이며,
+// scripts/seed-supabase.ts 로 DB에 적재(교체)한다.
 import type {
   Space,
   Requirement,
@@ -8,52 +9,85 @@ import type {
   ChecklistItem,
 } from "./types";
 
-const IMG_A =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuCABSIkLlgiBYnQirLThw-svPcgv8c56mN7ISjEN4uwukQZUSDnfVLafhCDLP6QVShMPS-RQX_J8IYWc4L-r15ftOWPfN1yivQo62K9hNkUZoYZa7rmIegl9VyLYi4PVtaZ7kYQ0c9FCUr__uR0ct6-_g2l9_mqMrRQrBZZZ2YM2XNQOvltCWVfwJNC7AEx8Wk-uRODWSgEXCrkF3Fvf-J-l1RXlgAktl5QK1argN1xKsB2ggwmU3Q3E5ktJi99abiTl06WlGYVFNyM";
-const IMG_B =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuBLHSUfGIVA9WsokZw5Ja-Cud8eCFTQ1lav3CacTzU5cTD7Gc2D_iRzZlvZCG6uo7CsQbjJbadOwB_EFDgqD4T0ZvyL2W6--MBrZwett7Hi6Ik--bpku7Ii_qWSOBMOD86BXvmp2ii2RFxUW_Mhn5rRfx7WB7gt-Z1Lm90ne6T1zQl3Q-IcaTviKxcX8ChIasZ3HDUxn8Xgj5qUy7VSbyhcHdAZP_0W5FwEWnMRQyMOPjVZ-1l223i5m7FM4PKlaGZVXt7vuV-D1IKg";
-
 export const SEED_SPACES: Space[] = [
-  { id: "sp-living", slug: "living", name: "거실", sort: 1 },
-  { id: "sp-kitchen", slug: "kitchen", name: "주방", sort: 2 },
-  { id: "sp-master", slug: "master", name: "안방", sort: 3 },
-  { id: "sp-bath", slug: "bath", name: "공용욕실", sort: 4 },
-  { id: "sp-entry", slug: "entry", name: "현관", sort: 5 },
+  { id: "sp-whole", slug: "whole", name: "전체", sort: 1 },
+  { id: "sp-living", slug: "living", name: "거실", sort: 2 },
+  { id: "sp-bath", slug: "bath", name: "공용화장실", sort: 3 },
+  { id: "sp-master-bath", slug: "master-bath", name: "안방 화장실", sort: 4 },
+  { id: "sp-entry", slug: "entry", name: "전실", sort: 5 },
+  { id: "sp-kitchen", slug: "kitchen", name: "주방", sort: 6 },
+  { id: "sp-sub-kitchen", slug: "sub-kitchen", name: "보조 주방", sort: 7 },
 ];
 
 export const SEED_REQUIREMENTS: Requirement[] = [
-  { id: "rq-1", space_id: "sp-living", category: "조명", content: "디머 조절 매립형 LED 스팟. 중앙 샹들리에 지점 15kg 하중 보강.", notes: "전기 도면 4페이지 참고.", sort: 1 },
-  { id: "rq-2", space_id: "sp-living", category: "바닥", content: "원목 헤링본 마루. 기존 걸레받이 철거 후 미니멀 라인으로 교체.", notes: null, sort: 2 },
-  { id: "rq-3", space_id: "sp-kitchen", category: "콘센트", content: "아일랜드 상판에 매립 팝업 콘센트 4구. 빌트인 오븐 전용 20A 회로.", notes: "백스플래시 석재 마감과 톤 맞춤.", sort: 1 },
-  { id: "rq-4", space_id: "sp-master", category: "스위치", content: "머리맡 양방향 스위치(메인등/독서등). 미니멀 브러시드 브라스 커버.", notes: "바닥에서 600mm 높이.", sort: 1 },
-  { id: "rq-5", space_id: "sp-bath", category: "설비", content: "벽 매립형 수전(몸체 은폐). 세면대 하부 방수 LED 스트립 + 동작 감지.", notes: "스트립 IP65 등급 필수.", sort: 1 },
-  { id: "rq-6", space_id: "sp-entry", category: "가구", content: "바닥부터 천장까지 신발장 + 벤치 일체형, 열쇠 니치 포함. 푸시 오픈.", notes: "내부 선반 간격 조절식.", sort: 1 },
+  { id: "rq-1", space_id: "sp-whole", category: "스위치", content: "융스위치\n높이·벽끝과의 거리를 일정하게 맞출 것 (오·열 정렬)\n전실에 일괄조명 스위치 제작", notes: null, sort: 1 },
+  { id: "rq-2", space_id: "sp-whole", category: "콘센트", content: "안 보이는 바닥·측면 부분에 시공\n모든 콘센트 위치 지정\n주방 아일랜드는 측면에 숨기기\n커튼 박스에 콘센트 넣기\n주방 배수구 있는 곳에 콘센트 넣기", notes: "콘센트 - 바흐만", sort: 2 },
+  { id: "rq-3", space_id: "sp-whole", category: "벽", content: "도배 / 필름", notes: "최대한 바닥·벽·천장에서 장식적인 요소 걷어내기", sort: 3 },
+  { id: "rq-4", space_id: "sp-whole", category: "바닥", content: "강마루 - 광폭 강마루 (2000*230)\n · 디앤메종 마제스티 오크 내추럴 (좀 더 채도 높은 색상 원함)\n타일 -", notes: null, sort: 4 },
+  { id: "rq-5", space_id: "sp-whole", category: "난방 배관", content: "", notes: null, sort: 5 },
+  { id: "rq-6", space_id: "sp-whole", category: "수도 분배기", content: "설치 여부 확인하기", notes: "주방·욕실 동시 사용 시 수압 낮아지는 것 방지\n균일한 수온의 물 사용", sort: 6 },
+  { id: "rq-7", space_id: "sp-whole", category: "양수기함 필터", content: "", notes: "녹물 제거 → 샤워필터·수도필터 사용 안 해도 됨", sort: 7 },
+  { id: "rq-8", space_id: "sp-whole", category: "조명", content: "전체 천장 - 다운라이트\n조명과 붙박이장 문의 간섭 확인\n주방·작업 공간에 그림자·빛간섭 없게 요청\n벽조명 - 나중에 촌스러울지 검토\n안방 화장대 위에 바리솔 조명?", notes: null, sort: 8 },
+  { id: "rq-9", space_id: "sp-whole", category: "간접 조명", content: "욕실 - LED바 간접조명으로 전압(12V·24V) 낮추기", notes: "T5조명 - 220V 전압 그대로 사용 → 위험 가능성", sort: 9 },
+  { id: "rq-10", space_id: "sp-whole", category: "시스템에어컨", content: "거실 1 · 주방 1 · 방 1·2·3·4", notes: null, sort: 10 },
+  { id: "rq-11", space_id: "sp-whole", category: "실외기", content: "실외기실이 따로 있는지 확인\n루버창 교체 - 자동 개폐장치", notes: null, sort: 11 },
+  { id: "rq-12", space_id: "sp-whole", category: "전열교환기", content: "삼성 비스포크 AI 에어콤보 전열교환기\n · 냉방·제습·환기를 시스템에어컨과 묶어서 관리 (에너지 40% 절감)\n요리 집중 급기 버튼 세팅 요청", notes: null, sort: 12 },
+  { id: "rq-13", space_id: "sp-whole", category: "실링팬", content: "", notes: null, sort: 13 },
+  { id: "rq-14", space_id: "sp-whole", category: "센서 조명", content: "현관 복도 / 화장실", notes: null, sort: 14 },
+  { id: "rq-15", space_id: "sp-whole", category: "가구 손잡이", content: "", notes: "오영민제작소 / 퍼니파트 / 비에프", sort: 15 },
+  { id: "rq-16", space_id: "sp-living", category: "샷시", content: "현재 샷시가 이중 유리인지·사용 가능한지 확인\n주방 쪽 샷시 크기를 줄이고 벽면을 살짝 높여 하부장 놓는 방식은?", notes: "아파트 관리 규약\n · 창호 외관 변형 금지 조항 있는지 확인", sort: 1 },
+  { id: "rq-17", space_id: "sp-living", category: "난간", content: "유리 난간으로 가능한지 문의\n · 입주자 대표 회의·관리실 회의 거쳐야 할 수 있음\n(외부 충격에 잘 버틸까? 위험하면 포기)", notes: null, sort: 2 },
+  { id: "rq-18", space_id: "sp-living", category: "확장", content: "단열 / 보일러", notes: null, sort: 3 },
+  { id: "rq-19", space_id: "sp-living", category: "안방 베란다", content: "전동식 빨래 건조대\n앞 베란다로 세탁기·건조기 이전 설치 가능한지?\n수도꼭지 교체", notes: null, sort: 4 },
+  { id: "rq-20", space_id: "sp-bath", category: "세면대", content: "심리스 세면대 (이음새 없는)", notes: null, sort: 1 },
+  { id: "rq-21", space_id: "sp-bath", category: "수납장", content: "세면대 아래 하부장으로 하고 싶음\n바닥은 건식으로 쓰되, 가끔 물청소 가능하게 유가 필요", notes: "상부장 거울 슬라이딩 도어 문제점\n · 손 닿는 부분이 물기로 부식됨\n위로 여는 도어는 원치 않음 (눈부심·뒤로 물러나야 하는 불편)", sort: 2 },
+  { id: "rq-22", space_id: "sp-bath", category: "거울", content: "깔끔하게 벽 전체 사각 거울\n심심하면 거울을 쪼개서 이어 붙이기 (가장자리에 무늬)\n모양 거울 X", notes: null, sort: 3 },
+  { id: "rq-23", space_id: "sp-bath", category: "유가", content: "샤워부스 쪽 - 롱라인 유가 스텐\n세면대 쪽 - 세면대 정중앙에 스텐 라인 유가", notes: null, sort: 4 },
+  { id: "rq-24", space_id: "sp-bath", category: "젠다이", content: "상부장과의 거리 충분히 확보 - 전동 칫솔 세울 공간", notes: null, sort: 5 },
+  { id: "rq-25", space_id: "sp-bath", category: "수전과 손잡이", content: "타일 벽에 매립?\n타일 벽 매립 시 수전·타일 이음새 곰팡이 오염이 세면대보다 적은지 확인", notes: null, sort: 6 },
+  { id: "rq-26", space_id: "sp-bath", category: "수건걸이·수전·샤워수전", content: "무광으로 설치", notes: null, sort: 7 },
+  { id: "rq-27", space_id: "sp-bath", category: "타일", content: "트래버틴 타일 - 석회암이 압축되며 생긴 무늬결\n밝은 색상 - 베이지·오트·크림톤\n600*600 / 600*1200", notes: null, sort: 8 },
+  { id: "rq-28", space_id: "sp-bath", category: "천장", content: "r", notes: null, sort: 9 },
+  { id: "rq-29", space_id: "sp-bath", category: "샤워공간", content: "파티션: 조적 + 유리 파티션으로 하고 싶음", notes: null, sort: 10 },
+  { id: "rq-30", space_id: "sp-master-bath", category: "세면대", content: "세면대를 욕실 밖으로 꺼내서 쓰고 싶음\n습기 문제?\n밖으로 꺼냈을 때 바닥은 뭐로?", notes: null, sort: 1 },
+  { id: "rq-31", space_id: "sp-entry", category: "거울", content: "장의 문 하나 전체를 거울로 - 브론즈경?", notes: null, sort: 1 },
+  { id: "rq-32", space_id: "sp-entry", category: "벽면", content: "손자국 안 남게 필름 시공?", notes: null, sort: 2 },
+  { id: "rq-33", space_id: "sp-entry", category: "도어락", content: "IoT 도어락 - 허브 연동형\n신발장 안에 콘센트 매립 → 셋톱박스 형태 허브 숨기기\n(도어락과 허브 거리가 가까워야 안정적으로 작동)", notes: "와이파이 방식은 반응 속도 느리고 배터리 빨리 소모", sort: 3 },
+  { id: "rq-34", space_id: "sp-kitchen", category: "상판", content: "세라믹? - 절제된 마블 패턴\n인조대리석? (이음새 없고 졸리컷 X)", notes: "뒷턱 X", sort: 1 },
+  { id: "rq-35", space_id: "sp-kitchen", category: "벽체 (미드웨이?)", content: "싱크대 상판과 벽체를 같은 소재로 하면 이음새 없이 깔끔함", notes: null, sort: 2 },
+  { id: "rq-36", space_id: "sp-kitchen", category: "가전", content: "인덕션 - 후드 일체형\n전기오븐레인지\n직배수 로봇청소기 - 거실 쪽 장에?\n냉장고 - 3도어(냉장·냉동·김치) or 삼성 TBI 냉장고\n식기세척기 - 마감판 하단·식세기 주변부 방수테이프 처리 요청", notes: "삼성 TBI 냉장고 - 하이엔드 주방 분위기\n냉장고(키큰장) 바로 옆에 오븐·식세기 붙이지 않기\n키큰 수납장으로 한 칸 여백 주기", sort: 3 },
+  { id: "rq-37", space_id: "sp-kitchen", category: "가전 소물", content: "커피머신·토스터·밥솥 등 위치를 먼저 잡고 콘센트 위치 설계", notes: null, sort: 4 },
+  { id: "rq-38", space_id: "sp-kitchen", category: "상부장", content: "", notes: null, sort: 5 },
+  { id: "rq-39", space_id: "sp-kitchen", category: "하부장", content: "온수분배기 앞쪽에 판넬 제작해 안 보이게 요청\n천장 상부 서라운딩·훼샤(하부장 옆 필라) 등 몰딩류 - 하지 않기", notes: "하부장 하드웨어 - 하만\n디바이더 - 노블핸즈·정도가공\n팬트리 하드웨어 - 누오미·영앤썬", sort: 6 },
+  { id: "rq-40", space_id: "sp-kitchen", category: "싱크볼", content: "싱크볼에 쓰는 카케이스는 방수보드로 제작", notes: "싱크볼 - 깜포르테 / 아티잔", sort: 7 },
+  { id: "rq-41", space_id: "sp-kitchen", category: "창", content: "PJ창으로 교체? 앞뒤로 밀어서 여는", notes: null, sort: 8 },
+  { id: "rq-42", space_id: "sp-sub-kitchen", category: "가스쿡탑", content: "빌트인하지 말고 이동식 인덕션·가스버너 사용하는 게 나음", notes: null, sort: 1 },
 ];
 
-export const SEED_CURRENT_STATES: CurrentState[] = [
-  { id: "cs-1", space_id: "sp-living", content: "노후된 형광등 1개, 벽지 변색. 걸레받이 체리색 몰딩.", notes: "천장 균열 소폭 있음.", sort: 1 },
-  { id: "cs-2", space_id: "sp-kitchen", content: "ㄷ자 싱크대, 콘센트 2구뿐. 오븐 없음.", notes: "환풍 약함.", sort: 1 },
-  { id: "cs-3", space_id: "sp-master", content: "단일 실링라이트, 스위치 문가 1개.", notes: null, sort: 1 },
-  { id: "cs-4", space_id: "sp-bath", content: "노출 배관 수전, 조명 어두움. 타일 줄눈 오염.", notes: "환풍기 소음 큼.", sort: 1 },
-  { id: "cs-5", space_id: "sp-entry", content: "기성 신발장(폭 800), 수납 부족.", notes: null, sort: 1 },
-];
-
-export const SEED_PHOTOS: Photo[] = [
-  { id: "ph-1", space_id: "sp-living", kind: "requirement", url: IMG_A, caption: "레퍼런스 무드보드", sort: 1 },
-  { id: "ph-2", space_id: "sp-living", kind: "current", url: IMG_B, caption: "현재 거실 전경", sort: 1 },
-  { id: "ph-3", space_id: "sp-kitchen", kind: "current", url: IMG_B, caption: "현재 주방", sort: 1 },
-  { id: "ph-4", space_id: "sp-bath", kind: "requirement", url: IMG_A, caption: "욕실 레퍼런스", sort: 1 },
-];
+// 현재상태·사진: 엑셀에 원본 없음 → 비움 (추후 관리자 화면에서 추가).
+export const SEED_CURRENT_STATES: CurrentState[] = [];
+export const SEED_PHOTOS: Photo[] = [];
 
 export const SEED_CHECKLIST: ChecklistItem[] = [
-  { id: "ck-1", title: "우리 방향: 디자인 vs 전체 리모델링", checked: false, rating: 3, note: null, sort: 1 },
-  { id: "ck-2", title: "상세 견적 vs 간이 견적서", checked: false, rating: 4, note: null, sort: 2 },
-  { id: "ck-3", title: "범위 확인: 전기 & 배관", checked: false, rating: 2, note: null, sort: 3 },
-  { id: "ck-4", title: "확장 시 에어컨 & 창호 사양", checked: true, rating: 5, note: "창틀 소음 저감 등급 확인 필요.", sort: 4 },
-  { id: "ck-5", title: "일정 & 공정 단계 계획", checked: false, rating: 0, note: null, sort: 5 },
-  { id: "ck-6", title: "자재 소싱 & 리드타임", checked: false, rating: 0, note: null, sort: 6 },
-  { id: "ck-7", title: "하도급 업체 목록 & 책임소재", checked: false, rating: 0, note: null, sort: 7 },
-  { id: "ck-8", title: "인허가 책임 & 지구단위", checked: false, rating: 0, note: null, sort: 8 },
-  { id: "ck-9", title: "폐기물 처리 & 준공 청소", checked: false, rating: 0, note: null, sort: 9 },
-  { id: "ck-10", title: "안전 관리 & 보험", checked: false, rating: 0, note: null, sort: 10 },
+  { id: "ck-1", title: "26' 7월~ 공부, 26' 12월~ 업체 미팅 시작 (3개월 전), 27' 1월 계약! (2개월 전), 공사는 6~7주(공사 기간은 넉넉하게, 줄이면 품질 하락)", checked: false, rating: 0, note: null, sort: 1 },
+  { id: "ck-2", title: "우리는 디자인? 올수리?", checked: false, rating: 0, note: null, sort: 2 },
+  { id: "ck-3", title: "한장 짜리 견적서는 피하고 모든 견적을 세세하게 표기한 견적서를 확인할 필요가 있다.", checked: false, rating: 0, note: "- 변기, 수전 등 항목에서는 제품까지 디테일하게!\n- 철거는 철거 대상 까지 자세하게 나열되어 있을 것!", sort: 3 },
+  { id: "ck-4", title: "단열, 방수, 배관 > 매우 중요!", checked: false, rating: 0, note: null, sort: 4 },
+  { id: "ck-5", title: "확장에 시스템 에어콘 + 샷시까지 쓰려면 평당 300.", checked: false, rating: 0, note: null, sort: 5 },
+  { id: "ck-6", title: "홈페이지 유무", checked: false, rating: 0, note: null, sort: 6 },
+  { id: "ck-7", title: "포트폴리오 업데이트 주기, 꾸준히 업데이트 되는지?", checked: false, rating: 0, note: null, sort: 7 },
+  { id: "ck-8", title: "지인 혹은 삼성 게시판 추천 업체", checked: false, rating: 0, note: null, sort: 8 },
+  { id: "ck-9", title: "AS시스템이 운영 중 인지 확인 (홈피에 존재하는지!)", checked: false, rating: 0, note: null, sort: 9 },
+  { id: "ck-10", title: "디자인에만 치중하지 않고 집의 정상적 기능 수행 및 실거주 입장에서 고려를 많이 하는지?", checked: false, rating: 0, note: null, sort: 10 },
+  { id: "ck-11", title: "오늘의집 최근 후기 보기", checked: false, rating: 0, note: null, sort: 11 },
+  { id: "ck-12", title: "현장 소장의 최대 관리 공사는 최대 2건으로 특약에 넣기", checked: false, rating: 0, note: null, sort: 12 },
+  { id: "ck-13", title: "법인에서 진행, 중소기업 현황정보시스템에서 재무 확인하기", checked: false, rating: 0, note: null, sort: 13 },
+  { id: "ck-14", title: "공사 매뉴얼 및 체크리스트 확인 그리고 일지도 확인가능한지문의", checked: false, rating: 0, note: null, sort: 14 },
+  { id: "ck-15", title: "3D 렌더링까지 되는지?", checked: false, rating: 0, note: null, sort: 15 },
+  { id: "ck-16", title: "디자인 요청서 양식이 있는지?", checked: false, rating: 0, note: null, sort: 16 },
+  { id: "ck-17", title: "지나친 레이아웃 변경은 지양", checked: false, rating: 0, note: "- 세탁기 관, 우수관, 변기관이 다 다른데 이거 옮겨도 되니? 안되는게 맞다. 반드시 시설 공사가 필요", sort: 17 },
+  { id: "ck-18", title: "히든도어 4년 썼는데 잘 된다더라~", checked: false, rating: 0, note: null, sort: 18 },
+  { id: "ck-19", title: "공개 주방생각보다 안튄다.", checked: false, rating: 0, note: null, sort: 19 },
+  { id: "ck-20", title: "후드 일체형 인덕션", checked: false, rating: 0, note: null, sort: 20 },
+  { id: "ck-21", title: "간접조명은 어찌 유지보수 하는지?", checked: false, rating: 0, note: null, sort: 21 },
 ];
