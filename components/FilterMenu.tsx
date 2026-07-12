@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 const PANEL_W = 220; // .filter-panel width (globals.css) — 위치 계산·화면밖 방지에 사용
@@ -36,22 +36,20 @@ export default function FilterMenu({
   const active = selected.length > 0;
 
   // 버튼 위치 기준으로 패널 좌표 계산(뷰포트 밖으로 나가지 않게 좌우 클램프).
+  const place = useCallback(() => {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const left = Math.max(
+      EDGE,
+      Math.min(r.left, window.innerWidth - PANEL_W - EDGE)
+    );
+    setPos({ top: r.bottom + 6, left });
+  }, []);
+
+  // 열려 있는 동안: 스크롤/리사이즈 시 재배치 + 외부클릭·ESC 로 닫기.
+  // setState 는 이벤트 콜백 안에서만 호출 — effect 본문에서 동기 호출하지 않는다.
   useEffect(() => {
-    if (!open) {
-      setPos(null);
-      focusedRef.current = false;
-      return;
-    }
-    const place = () => {
-      const r = btnRef.current?.getBoundingClientRect();
-      if (!r) return;
-      const left = Math.max(
-        EDGE,
-        Math.min(r.left, window.innerWidth - PANEL_W - EDGE)
-      );
-      setPos({ top: r.bottom + 6, left });
-    };
-    place();
+    if (!open) return;
     const onDown = (e: MouseEvent) => {
       const t = e.target as Node;
       if (rootRef.current?.contains(t) || panelRef.current?.contains(t)) return;
@@ -71,7 +69,14 @@ export default function FilterMenu({
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, place]);
+
+  // 열기: 클릭 시점(=이벤트 핸들러)에 위치를 먼저 계산한 뒤 연다.
+  const openMenu = () => {
+    focusedRef.current = false;
+    place();
+    setOpen(true);
+  };
 
   // 패널이 실제로 붙은 뒤 첫 체크박스로 포커스(열릴 때 1회만 — 스크롤 재배치 시 뺏지 않게).
   useEffect(() => {
@@ -99,7 +104,7 @@ export default function FilterMenu({
         aria-controls={open ? panelId : undefined}
         aria-label={`${label} 필터${active ? `, ${selected.length}개 선택됨` : ""}`}
         data-active={active}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? setOpen(false) : openMenu())}
         className="filter-head group"
         title={`${label} 필터`}
       >
