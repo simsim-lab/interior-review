@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import type {
   SpaceBundle,
   PhotoKind,
@@ -394,18 +394,38 @@ export default function SpaceView({
           <nav className="flex items-center gap-6 border-b border-outline-variant overflow-x-auto pb-px custom-scrollbar sm:flex-1 sm:min-w-0">
             {[{ slug: "all", name: "전체" }, ...data.map((b) => b.space)].map((s) => {
               const on = isAll ? s.slug === "all" : active === s.slug;
+              const isAllTab = s.slug === "all";
               return (
-                <button
-                  key={s.slug}
-                  onClick={() => setActive(s.slug)}
-                  className={`relative py-4 text-label-md font-label-md whitespace-nowrap transition-colors ${
-                    on
-                      ? "text-primary font-bold active-tab-line"
-                      : "text-secondary hover:text-primary"
-                  }`}
-                >
-                  {s.name}
-                </button>
+                <Fragment key={s.slug}>
+                  <button
+                    onClick={() => setActive(s.slug)}
+                    className={`relative flex items-center gap-1.5 py-4 text-label-md font-label-md whitespace-nowrap transition-colors ${
+                      on
+                        ? "text-primary font-bold active-tab-line"
+                        : "text-secondary hover:text-primary"
+                    }`}
+                  >
+                    {isAllTab && (
+                      <span
+                        aria-hidden="true"
+                        className="material-symbols-outlined text-[17px] leading-none"
+                        style={{
+                          fontVariationSettings: on ? "'FILL' 1" : "'FILL' 0",
+                        }}
+                      >
+                        dashboard
+                      </span>
+                    )}
+                    {s.name}
+                  </button>
+                  {/* "전체"(고정·비편집 요약 뷰)를 편집 가능한 공간 탭과 분리하는 세로 구분선 */}
+                  {isAllTab && (
+                    <span
+                      aria-hidden="true"
+                      className="h-4 w-px shrink-0 self-center bg-outline-variant"
+                    />
+                  )}
+                </Fragment>
               );
             })}
           </nav>
