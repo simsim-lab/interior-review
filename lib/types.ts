@@ -30,6 +30,10 @@ export interface Photo {
   id: string;
   space_id: string;
   kind: PhotoKind;
+  // 사진은 행(요구사항/현재상태) 단위로 귀속된다. kind 에 따라 한쪽만 채워짐.
+  // (space_id 는 스토리지 경로·공간별 조회용으로 유지 — 행 FK 로부터 파생 가능)
+  requirement_id: string | null;
+  current_state_id: string | null;
   url: string;
   caption: string | null;
   sort: number;

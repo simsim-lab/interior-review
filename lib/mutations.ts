@@ -87,18 +87,27 @@ export async function deleteRow(
   if (error) throw error;
 }
 
-/** 사진 업로드 → Storage(photos 버킷) + photos 테이블 insert. seed 모드는 로컬 objectURL. */
+/**
+ * 사진 업로드 → Storage(photos 버킷) + photos 테이블 insert. seed 모드는 로컬 objectURL.
+ * 사진은 행(요구사항/현재상태) 단위로 귀속 — kind 에 따라 해당 FK 를 채운다.
+ */
 export async function uploadPhoto(
   spaceId: string,
   kind: "requirement" | "current",
+  rowId: string,
   file: File,
   sort: number
 ): Promise<Photo> {
+  const fk =
+    kind === "requirement"
+      ? { requirement_id: rowId, current_state_id: null }
+      : { requirement_id: null, current_state_id: rowId };
   if (!canPersist) {
     return {
       id: newId(),
       space_id: spaceId,
       kind,
+      ...fk,
       url: URL.createObjectURL(file),
       caption: file.name,
       sort,
@@ -106,7 +115,7 @@ export async function uploadPhoto(
   }
   const client = sb();
   const ext = file.name.split(".").pop() || "jpg";
-  const path = `${spaceId}/${kind}/${newId()}.${ext}`;
+  const path = `${spaceId}/${rowId}/${newId()}.${ext}`;
   const up = await client.storage.from("photos").upload(path, file, {
     cacheControl: "3600",
     upsert: false,
@@ -115,7 +124,7 @@ export async function uploadPhoto(
   const { data: pub } = client.storage.from("photos").getPublicUrl(path);
   const { data, error } = await client
     .from("photos")
-    .insert({ space_id: spaceId, kind, url: pub.publicUrl, caption: file.name, sort })
+    .insert({ space_id: spaceId, kind, ...fk, url: pub.publicUrl, caption: file.name, sort })
     .select("*")
     .single();
   if (error) throw error;
