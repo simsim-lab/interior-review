@@ -24,7 +24,7 @@ export async function getSpaceBundles(): Promise<SpaceBundle[]> {
   if (!SUPABASE_ENABLED) {
     return bundle(SEED_SPACES, SEED_REQUIREMENTS, SEED_CURRENT_STATES, SEED_PHOTOS);
   }
-  const sb = createClient();
+  const sb = await createClient();
   const [spaces, reqs, states, photos] = await Promise.all([
     sb.from("spaces").select("*").order("sort"),
     sb.from("requirements").select("*").order("space_id").order("sort"),
@@ -51,7 +51,7 @@ export async function getChecklist(): Promise<ChecklistItem[]> {
   if (!SUPABASE_ENABLED) {
     return [...SEED_CHECKLIST].sort((a, b) => a.sort - b.sort);
   }
-  const sb = createClient();
+  const sb = await createClient();
   const { data, error } = await sb
     .from("checklist_items")
     .select("*")

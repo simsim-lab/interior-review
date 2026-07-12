@@ -21,7 +21,7 @@ export function emailAllowed(email: string | null | undefined): boolean {
 // 요청 단위 메모이즈 — 한 렌더에서 auth.getUser() Supabase 왕복을 1회로 축소.
 const getUser = cache(async () => {
   if (!SUPABASE_ENABLED) return null;
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

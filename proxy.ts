@@ -2,8 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 // admin 세션 토큰 갱신 (@supabase/ssr 표준 패턴).
+// Next 16: middleware 파일 컨벤션 → proxy 로 대체.
 // Supabase env 없으면 통과.
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) return NextResponse.next();

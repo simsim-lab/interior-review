@@ -7,8 +7,9 @@ export const SUPABASE_ENABLED = !!(
 );
 
 // 서버 컴포넌트 / 라우트 핸들러용 Supabase 클라이언트 (쿠키 기반 세션).
-export function createClient() {
-  const cookieStore = cookies();
+// Next 16: cookies() 는 async → createClient 도 async.
+export async function createClient() {
+  const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

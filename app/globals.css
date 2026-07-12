@@ -1,7 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..600,0..100,0..1&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap");
-
+/* 웹폰트는 app/layout.tsx 의 <head><link> 으로 로드 (Turbopack @import 이슈 회피). */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
