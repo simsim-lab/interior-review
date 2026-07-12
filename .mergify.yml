@@ -30,3 +30,26 @@ pull_request_rules:
         commit_message_format:
           title: pr-title
           body: pr-body
+
+  - name: auto-merge PRs when all CI passes
+    # 사람 PR도 필수 CI 가 모두 통과하면 Mergify 가 자동 머지한다.
+    # 막고 싶으면 draft 로 두거나 `do-not-merge` 라벨을 붙인다. (dependabot 은 위 전용 룰 사용)
+    conditions:
+      - base = main
+      - author != dependabot[bot]
+      - -draft
+      - -conflict
+      - -label = do-not-merge
+      - check-success = lint
+      - check-success = test
+      - check-success = types
+      - check-success = build
+      - check-success = e2e
+      - check-success = codeql
+      - check-success = CodeQL
+      - check-success = semgrep
+      - check-success = gitleaks
+      - check-success = npm-audit
+    actions:
+      merge:
+        method: merge
