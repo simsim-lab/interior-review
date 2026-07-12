@@ -6,6 +6,8 @@ import PhotoGrid from "./PhotoGrid";
 import AutoTextarea from "./AutoTextarea";
 import Footer from "./Footer";
 import Hero, { HeroChip } from "./Hero";
+import { requirementCategories, effectiveCategory } from "@/lib/filter";
+import { revertPatch } from "@/lib/util";
 import {
   canPersist,
   insertSpace,
@@ -88,23 +90,12 @@ export default function SpaceView({
 
   // 분류 필터 (요구사항 모드): 전체 공간의 고유 분류 목록. useMemo 로 참조 안정화.
   const categories = useMemo(
-    () =>
-      mode === "requirement"
-        ? Array.from(
-            new Set(
-              data.flatMap((b) =>
-                b.requirements
-                  .map((r) => (r.category || "").trim())
-                  .filter(Boolean)
-              )
-            )
-          )
-        : [],
+    () => (mode === "requirement" ? requirementCategories(data) : []),
     [mode, data]
   );
   // 선택된 분류가 사라지면 렌더 중 파생값으로 "전체"처럼 취급 — 死상태·깜빡임 없음.
   const effectiveCat =
-    mode === "requirement" && categories.includes(catFilter) ? catFilter : "all";
+    mode === "requirement" ? effectiveCategory(catFilter, categories) : "all";
   const catActive = effectiveCat !== "all";
   const blocks = visible.filter((b) =>
     catActive
@@ -205,9 +196,7 @@ export default function SpaceView({
     const before = rows?.find((r) => r.id === id) as
       | Record<string, unknown>
       | undefined;
-    const revert = before
-      ? Object.fromEntries(Object.keys(patch).map((k) => [k, before[k]]))
-      : null;
+    const revert = revertPatch(before, patch);
 
     const apply = (p: Record<string, unknown>) =>
       setData((d) =>
