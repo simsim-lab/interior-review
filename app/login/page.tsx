@@ -25,10 +25,15 @@ function LoginForm() {
     }
     setBusy(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // 아이디만 입력하면 내부 이메일로 매핑 (admin → admin@example.com)
+    const loginEmail = email.includes("@") ? email : `${email.trim()}@example.com`;
+    const { error } = await supabase.auth.signInWithPassword({
+      email: loginEmail,
+      password,
+    });
     setBusy(false);
     if (error) {
-      setError("로그인 실패: 이메일 또는 비밀번호를 확인하세요.");
+      setError("로그인 실패: 아이디 또는 비밀번호를 확인하세요.");
       return;
     }
     router.push(next);
@@ -51,15 +56,15 @@ function LoginForm() {
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label className="text-label-md font-label-md text-secondary block mb-1">
-              이메일
+              아이디
             </label>
             <input
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
               className="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-              placeholder="admin@example.com"
+              placeholder="admin"
             />
           </div>
           <div>
