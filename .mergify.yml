@@ -1,0 +1,32 @@
+pull_request_rules:
+  - name: dismiss approvals on new commits
+    conditions:
+      - base = main
+    actions:
+      dismiss_reviews:
+        approved: true
+        message: "New commits pushed — approvals dismissed."
+
+  - name: auto-merge Dependabot PRs when CI passes
+    conditions:
+      - base = main
+      - author = dependabot[bot]
+      - check-success = lint
+      - check-success = test
+      - check-success = types
+      - check-success = build
+      - check-success = e2e
+      - check-success = codeql
+      - check-success = CodeQL
+      - check-success = semgrep
+      - check-success = gitleaks
+      - check-success = npm-audit
+    actions:
+      review:
+        type: APPROVE
+        message: Dependabot PR — all CI checks passed, auto-approving.
+      merge:
+        method: squash
+        commit_message_format:
+          title: pr-title
+          body: pr-body
