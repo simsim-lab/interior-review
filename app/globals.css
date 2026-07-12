@@ -257,28 +257,117 @@ body {
   box-shadow: 0 0 0 3px rgba(74, 58, 41, 0.14);
 }
 
-/* 분류 필터 칩 */
-.fchip {
+/* ─── 엑셀식 컬럼 헤더 필터 (FilterMenu) ─────────────────────────────────── */
+/* 헤더의 ▾ 버튼 — 평소엔 헤더 라벨처럼, 활성 시 강조 */
+.filter-head {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.3rem 0.8rem;
-  border-radius: 9999px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid #ddd0ba;
-  color: #574b3a;
+  padding: 0.28rem 0.55rem;
+  border-radius: 8px;
+  color: #574b3a; /* on-surface-variant — 헤더 배경 대비 AA */
+  border: 1px solid transparent;
   background-color: transparent;
+  white-space: nowrap; /* "공간"·"분류" 라벨이 좁은 열에서 줄바꿈되지 않게 */
   transition: all 0.15s ease;
 }
-.fchip:hover {
-  border-color: var(--wood);
+.filter-head:hover {
+  border-color: #ddd0ba;
   color: var(--wood);
+  background-color: #f6efe1;
 }
-.fchip[data-active="true"] {
-  background-color: var(--wood);
-  border-color: var(--wood);
-  color: #f7f1e6;
+.filter-head:focus-visible {
+  outline: none;
+  border-color: var(--ochre);
+  box-shadow: 0 0 0 2px rgba(176, 125, 52, 0.22);
+}
+/* 활성 = 오커 틴트 배경 + 진한 웜브라운 텍스트(WCAG AA 대비 확보) + 오커 보더 */
+.filter-head[data-active="true"] {
+  color: #6e4a17; /* on-tertiary-container — 오커 틴트 위에서 대비 ~7:1 */
+  background-color: rgba(176, 125, 52, 0.15);
+  border-color: rgba(176, 125, 52, 0.4);
+}
+/* 활성 선택 개수 배지 — 진한 웜브라운 필(대비 확보) */
+.filter-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fbf7ee;
+  background-color: #6e4a17;
+}
+/* 드롭다운 패널 */
+.filter-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  width: 220px;
+  padding: 0.4rem 0.25rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid #ddd0ba;
+  background-color: #fefcf7;
+  box-shadow: var(--shadow-lift);
+}
+
+/* "공간" 셀 드롭다운 — 분류 칩과 같은 필(pill) 언어, 단 채움 아닌 아웃라인 +
+   셰브론으로 "바꿀 수 있는 값"임을 표시. 폼 상자 느낌을 덜어낸다. */
+.space-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 30px;
+  max-width: 8.5rem;
+  padding: 0 1.55rem 0 0.72rem;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--wood);
+  background-color: transparent;
+  border: 1px solid #ddd0ba;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis; /* 긴 공간명은 … 로 잘림(+ JSX title 로 전체 이름 툴팁) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234a3a29' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 11px;
+  transition: border-color 0.15s ease, background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.space-select:hover {
+  border-color: var(--ochre);
+  background-color: rgba(176, 125, 52, 0.06);
+}
+.space-select:focus,
+.space-select:focus-visible {
+  outline: none;
+  border-color: var(--ochre);
+  box-shadow: 0 0 0 2px rgba(176, 125, 52, 0.2);
+}
+
+/* 가로 스크롤 그림자 단서 — 좌/우에 콘텐츠가 더 있으면 가장자리에 옅은 그림자.
+   local 커버(카드색)가 스크롤 끝에서 그림자를 가려, 넘칠 때만 자동 표시(모바일). */
+.table-scroll {
+  background:
+    linear-gradient(to right, #fefcf7 32%, rgba(254, 252, 247, 0)) left center / 30px
+      100% no-repeat local,
+    linear-gradient(to left, #fefcf7 32%, rgba(254, 252, 247, 0)) right center / 30px
+      100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(60, 44, 24, 0.16), rgba(60, 44, 24, 0))
+      left center / 14px 100% no-repeat scroll,
+    radial-gradient(
+        farthest-side at 100% 50%,
+        rgba(60, 44, 24, 0.16),
+        rgba(60, 44, 24, 0)
+      )
+      right center / 14px 100% no-repeat scroll;
 }
 
 /* ─── production 보호 layer (hakgun-viewer 패턴) ────────────────────────── */

@@ -1,13 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { SpaceBundle, PhotoKind, Photo } from "@/lib/types";
-import PhotoGrid from "./PhotoGrid";
+import { useEffect, useMemo, useState } from "react";
+import type {
+  SpaceBundle,
+  PhotoKind,
+  Requirement,
+  CurrentState,
+} from "@/lib/types";
 import AutoTextarea from "./AutoTextarea";
 import Footer from "./Footer";
 import Hero, { HeroChip } from "./Hero";
 import Spinner from "./Spinner";
-import { requirementCategories, effectiveCategory } from "@/lib/filter";
+import FilterMenu from "./FilterMenu";
+import PhotoCell from "./PhotoCell";
+import SpaceManager from "./SpaceManager";
+import {
+  requirementCategories,
+  spaceSlugs,
+  pruneSelection,
+  matchesFilter,
+} from "@/lib/filter";
+import { relocateRow } from "@/lib/rows";
 import { revertPatch } from "@/lib/util";
 import {
   canPersist,
@@ -30,7 +43,6 @@ const HERO_IMG = {
 } as const;
 
 // 모드별 차이(테이블·사진종류·라벨·아이콘·히어로)를 한 곳에 모은 전략 객체.
-// 산재하던 `mode === "requirement"` 분기를 cfg 참조로 대체한다.
 const MODE = {
   requirement: {
     photoKind: "requirement" as PhotoKind,
@@ -38,8 +50,8 @@ const MODE = {
     heroImg: HERO_IMG.requirement,
     heroChip: "요구사항 명세",
     heroChipIcon: "architecture",
-    sectionIcon: "architecture",
-    photoLabel: "레퍼런스 사진",
+    addLabel: "요구사항 추가",
+    minWidth: "min-w-[760px]",
   },
   current: {
     photoKind: "current" as PhotoKind,
@@ -47,8 +59,8 @@ const MODE = {
     heroImg: HERO_IMG.current,
     heroChip: "현재상태 기록",
     heroChipIcon: "photo_library",
-    sectionIcon: "photo_camera",
-    photoLabel: "현재 사진",
+    addLabel: "현재상태 추가",
+    minWidth: "min-w-[640px]",
   },
 } as const;
 
@@ -68,13 +80,13 @@ export default function SpaceView({
   subtitle: string;
 }) {
   const cfg = MODE[mode];
+  const isReq = mode === "requirement";
   const [data, setData] = useState<SpaceBundle[]>(bundles);
   const [active, setActive] = useState<string>("all");
-  const [newSpace, setNewSpace] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [addingItem, setAddingItem] = useState<string | null>(null); // 항목 추가 중인 공간 id
-  const [showSpaceInput, setShowSpaceInput] = useState(false);
-  const [catFilter, setCatFilter] = useState<string>("all");
+  const [addingItem, setAddingItem] = useState(false);
+  const [showManager, setShowManager] = useState(false);
+  const [catFilter, setCatFilter] = useState<string[]>([]);
+  const [spaceFilter, setSpaceFilter] = useState<string[]>([]);
   const [flash, setFlash] = useState<{ msg: string } | null>(null);
   const photoKind = cfg.photoKind;
   const itemTable = cfg.table;
@@ -87,45 +99,73 @@ export default function SpaceView({
     return () => clearTimeout(t);
   }, [flash]);
 
-  const visible =
-    active === "all" ? data : data.filter((b) => b.space.slug === active);
+  // 탭이 삭제돼 사라지면 "전체"처럼 취급.
+  const isAll = active === "all" || !data.some((b) => b.space.slug === active);
+  // 참조 안정화 — 이게 매 렌더 새 배열이면 아래 useMemo 들이 memoize 되지 않는다.
+  const visibleBundles = useMemo(
+    () => (isAll ? data : data.filter((b) => b.space.slug === active)),
+    [data, active, isAll]
+  );
+  const showSpaceCol = isAll; // 공간 열/필터는 "전체"에서만
 
-  // 분류 필터 (요구사항 모드): 전체 공간의 고유 분류 목록. useMemo 로 참조 안정화.
-  const categories = useMemo(
-    () => (mode === "requirement" ? requirementCategories(data) : []),
-    [mode, data]
+  // ─── 필터(엑셀식 다중 선택) — 현재 보이는 테이블 기준으로 동적 ───
+  const rowsOf = (b: SpaceBundle): (Requirement | CurrentState)[] =>
+    isReq ? b.requirements : b.currentStates;
+  const catText = (r: Requirement | CurrentState) =>
+    "category" in r ? r.category : "";
+  const catOf = (r: Requirement | CurrentState) => catText(r).trim();
+
+  // 선택값 폴백: 현재 뷰에 없는 값은 무시(死상태 방지). 공간은 유니크한 slug 로 식별.
+  const cat = useMemo(
+    () => pruneSelection(catFilter, requirementCategories(visibleBundles)),
+    [catFilter, visibleBundles]
   );
-  // 선택된 분류가 사라지면 렌더 중 파생값으로 "전체"처럼 취급 — 死상태·깜빡임 없음.
-  const effectiveCat =
-    mode === "requirement" ? effectiveCategory(catFilter, categories) : "all";
-  const catActive = effectiveCat !== "all";
-  const blocks = visible.filter((b) =>
-    catActive
-      ? b.requirements.some((r) => (r.category || "").trim() === effectiveCat)
-      : true
+  const spc = useMemo(
+    () => pruneSelection(spaceFilter, spaceSlugs(visibleBundles)),
+    [spaceFilter, visibleBundles]
   );
+
+  // 각 필터의 드롭다운 옵션은 "다른 필터를 적용한 뒤 남는 값"만 노출(동적).
+  const spaceScoped = visibleBundles.filter((b) =>
+    matchesFilter(b.space.slug, spc)
+  );
+  const catMenuOptions = requirementCategories(spaceScoped).map((c) => ({
+    value: c,
+    label: c,
+  }));
+  const spaceMenuOptions = visibleBundles
+    .filter((b) => rowsOf(b).some((r) => matchesFilter(catOf(r), cat)))
+    .map((b) => ({ value: b.space.slug, label: b.space.name }));
+
+  // 최종 표시 행 — 공간 필터 → 분류 필터.
+  const rows = spaceScoped.flatMap((b) =>
+    rowsOf(b)
+      .filter((r) => (isReq ? matchesFilter(catOf(r), cat) : true))
+      .map((r) => ({ b, r }))
+  );
+
+  // 사진은 행 FK 로 조회한다(공간 이동 시 사진이 다른 번들에 남아도 찾도록 전체 검색).
+  const allPhotos = useMemo(() => data.flatMap((b) => b.photos), [data]);
+  const photosFor = (rowId: string) =>
+    allPhotos.filter(
+      (p) =>
+        p.kind === photoKind &&
+        (isReq ? p.requirement_id : p.current_state_id) === rowId
+    );
 
   // ─── 공간 ───
-  async function addSpace() {
-    const name = newSpace.trim();
-    if (!name) return;
-    setAdding(true);
+  async function addSpace(name: string) {
     try {
       const space = await insertSpace(name, nextSort(data.map((b) => b.space)));
       setData((d) => [
         ...d,
         { space, requirements: [], currentStates: [], photos: [] },
       ]);
-      setNewSpace("");
-      setShowSpaceInput(false);
     } catch {
       notify(SAVE_ERR);
-    } finally {
-      setAdding(false);
     }
   }
 
-  // 낙관적 변경: 실패 시 해당 공간의 이름만 되돌림(다른 편집 보존).
   function renameSpace(spaceId: string, name: string) {
     const before = data.find((b) => b.space.id === spaceId)?.space.name;
     const setName = (v: string) =>
@@ -152,18 +192,25 @@ export default function SpaceView({
   }
 
   // ─── 항목 ───
-  async function addItem(spaceId: string) {
-    const bundle = data.find((b) => b.space.id === spaceId);
-    if (!bundle) return;
-    setAddingItem(spaceId);
+  async function addRow() {
+    // 추가 대상 공간: 개별 탭이면 그 공간, 전체면 현재 보이는 마지막 공간(표 맨 아래).
+    const target = isAll
+      ? spaceScoped[spaceScoped.length - 1] ??
+        visibleBundles[visibleBundles.length - 1]
+      : visibleBundles[0];
+    if (!target) return;
+    const spaceId = target.space.id;
+    // 새 행이 활성 분류 필터 밖(빈 분류)이라 안 보이는 혼란 방지 → 분류 필터 해제.
+    if (isReq) setCatFilter([]);
+    setAddingItem(true);
     try {
-      if (mode === "requirement") {
+      if (isReq) {
         const row = await insertRequirement({
           space_id: spaceId,
           category: "",
           content: "",
           notes: null,
-          sort: nextSort(bundle.requirements),
+          sort: nextSort(target.requirements),
         });
         setData((d) =>
           d.map((b) =>
@@ -177,7 +224,7 @@ export default function SpaceView({
           space_id: spaceId,
           content: "",
           notes: null,
-          sort: nextSort(bundle.currentStates),
+          sort: nextSort(target.currentStates),
         });
         setData((d) =>
           d.map((b) =>
@@ -190,15 +237,15 @@ export default function SpaceView({
     } catch {
       notify(SAVE_ERR);
     } finally {
-      setAddingItem(null);
+      setAddingItem(false);
     }
   }
 
   function patchItem(spaceId: string, id: string, patch: Record<string, unknown>) {
     // 실패 시 되돌릴 값: 해당 항목의 "패치된 필드만" 캡처(다른 편집 보존).
     const bundle = data.find((b) => b.space.id === spaceId);
-    const rows = mode === "requirement" ? bundle?.requirements : bundle?.currentStates;
-    const before = rows?.find((r) => r.id === id) as
+    if (!bundle) return;
+    const before = rowsOf(bundle).find((r) => r.id === id) as
       | Record<string, unknown>
       | undefined;
     const revert = revertPatch(before, patch);
@@ -207,26 +254,48 @@ export default function SpaceView({
       setData((d) =>
         d.map((b) => {
           if (b.space.id !== spaceId) return b;
-          if (mode === "requirement") {
-            return {
-              ...b,
-              requirements: b.requirements.map((r) =>
-                r.id === id ? { ...r, ...p } : r
-              ),
-            };
-          }
-          return {
-            ...b,
-            currentStates: b.currentStates.map((c) =>
-              c.id === id ? { ...c, ...p } : c
-            ),
-          };
+          return isReq
+            ? {
+                ...b,
+                requirements: b.requirements.map((r) =>
+                  r.id === id ? { ...r, ...p } : r
+                ),
+              }
+            : {
+                ...b,
+                currentStates: b.currentStates.map((c) =>
+                  c.id === id ? { ...c, ...p } : c
+                ),
+              };
         })
       );
 
     apply(patch);
     updateRow(itemTable, id, patch).catch(() => {
-      if (revert) apply(revert); // 해당 항목의 해당 필드만 복원
+      if (revert) apply(revert);
+      notify(SAVE_ERR);
+    });
+  }
+
+  // 행을 다른 공간으로 이동(전체 뷰의 "공간" 셀 드롭다운).
+  // 대상 공간 끝에 새 sort 로 재배치. 실패 시 "그 행만" 원위치(다른 편집 보존).
+  // 사진은 행 FK 로 조회하므로(photosFor 전체검색) 함께 옮길 필요 없음.
+  function moveRowSpace(fromSpaceId: string, id: string, toSpaceId: string) {
+    if (fromSpaceId === toSpaceId) return;
+    const src = data.find((b) => b.space.id === fromSpaceId);
+    const orig = src && rowsOf(src).find((r) => r.id === id);
+    if (!orig) return;
+    const origSort = orig.sort;
+    const target = data.find((b) => b.space.id === toSpaceId);
+    const newSort = target ? nextSort(rowsOf(target)) : origSort;
+
+    // 특정 행 하나만 from→to 로 옮기는 함수형 업데이트(순수 relocateRow 위임).
+    const relocate = (from: string, to: string, sort: number) =>
+      setData((d) => relocateRow(d, mode, id, from, to, sort));
+
+    relocate(fromSpaceId, toSpaceId, newSort); // 낙관적 이동
+    updateRow(itemTable, id, { space_id: toSpaceId, sort: newSort }).catch(() => {
+      relocate(toSpaceId, fromSpaceId, origSort); // 그 행만 원위치
       notify(SAVE_ERR);
     });
   }
@@ -237,7 +306,7 @@ export default function SpaceView({
       setData((d) =>
         d.map((b) => {
           if (b.space.id !== spaceId) return b;
-          return mode === "requirement"
+          return isReq
             ? { ...b, requirements: b.requirements.filter((r) => r.id !== id) }
             : { ...b, currentStates: b.currentStates.filter((c) => c.id !== id) };
         })
@@ -247,14 +316,15 @@ export default function SpaceView({
     }
   }
 
-  // ─── 사진 ───
-  async function addPhoto(spaceId: string, file: File) {
+  // ─── 사진(행 단위) ───
+  async function addPhoto(spaceId: string, rowId: string, file: File) {
     const bundle = data.find((b) => b.space.id === spaceId);
     if (!bundle) return;
     try {
       const photo = await uploadPhoto(
         spaceId,
         photoKind,
+        rowId,
         file,
         nextSort(bundle.photos)
       );
@@ -268,20 +338,24 @@ export default function SpaceView({
     }
   }
 
-  async function removePhoto(spaceId: string, photoId: string) {
+  // 사진이 (공간 이동 등으로) 어느 번들에 있든 찾아 제거 — 전체 번들에서 필터.
+  async function removePhoto(photoId: string) {
     try {
       await deleteRow("photos", photoId);
       setData((d) =>
-        d.map((b) =>
-          b.space.id === spaceId
-            ? { ...b, photos: b.photos.filter((p) => p.id !== photoId) }
-            : b
-        )
+        d.map((b) => ({
+          ...b,
+          photos: b.photos.filter((p) => p.id !== photoId),
+        }))
       );
     } catch {
       notify("사진 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     }
   }
+
+  // 삭제 열 포함 총 컬럼 수(빈 상태 colSpan 용).
+  const colCount =
+    (showSpaceCol ? 1 : 0) + (isReq ? 1 : 0) + 2 /*내용·메모*/ + 1 /*사진*/ + (isAdmin ? 1 : 0);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -315,541 +389,253 @@ export default function SpaceView({
           </div>
         )}
 
-        {/* 탭 + 공간추가 + 분류 필터 */}
-        <div className="rise flex flex-col gap-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-            <nav className="flex items-center gap-6 border-b border-outline-variant overflow-x-auto pb-px custom-scrollbar sm:flex-1 sm:min-w-0">
-              {[{ slug: "all", name: "전체" }, ...data.map((b) => b.space)].map((s) => (
+        {/* 탭 + 공간 편집 */}
+        <div className="rise flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+          <nav className="flex items-center gap-6 border-b border-outline-variant overflow-x-auto pb-px custom-scrollbar sm:flex-1 sm:min-w-0">
+            {[{ slug: "all", name: "전체" }, ...data.map((b) => b.space)].map((s) => {
+              const on = isAll ? s.slug === "all" : active === s.slug;
+              return (
                 <button
                   key={s.slug}
                   onClick={() => setActive(s.slug)}
                   className={`relative py-4 text-label-md font-label-md whitespace-nowrap transition-colors ${
-                    active === s.slug
+                    on
                       ? "text-primary font-bold active-tab-line"
                       : "text-secondary hover:text-primary"
                   }`}
                 >
                   {s.name}
                 </button>
-              ))}
-            </nav>
+              );
+            })}
+          </nav>
 
-            {isAdmin && (
-              <div className="flex shrink-0 items-center gap-2 sm:pb-3">
-                {showSpaceInput ? (
-                  <>
-                    <input
-                      autoFocus
-                      value={newSpace}
-                      onChange={(e) => setNewSpace(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") addSpace();
-                        if (e.key === "Escape") {
-                          setShowSpaceInput(false);
-                          setNewSpace("");
-                        }
-                      }}
-                      placeholder="새 공간 이름"
-                      className="field w-40"
-                    />
-                    <button
-                      onClick={addSpace}
-                      disabled={adding || !newSpace.trim()}
-                      className="flex items-center gap-1 bg-primary text-on-primary px-4 py-2 rounded-lg text-label-md font-label-md hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"
-                    >
-                      {adding ? (
-                        <Spinner size={18} />
-                      ) : (
-                        <span className="material-symbols-outlined text-[18px]">check</span>
-                      )}
-                      {adding ? "추가 중…" : "확인"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowSpaceInput(false);
-                        setNewSpace("");
-                      }}
-                      className="text-secondary hover:text-primary px-2 py-2 text-label-md"
-                    >
-                      취소
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => setShowSpaceInput(true)}
-                    className="flex items-center gap-1 bg-primary text-on-primary px-4 py-2 rounded-lg text-label-md font-label-md hover:opacity-90 active:scale-95 transition-all"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">add</span>
-                    공간 추가
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {mode === "requirement" && categories.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="mr-1 inline-flex items-center gap-1 text-caption text-secondary">
-                <span className="material-symbols-outlined text-[16px]">filter_list</span>
-                분류
-              </span>
+          {isAdmin && (
+            <div className="flex shrink-0 items-center gap-2 sm:pb-3">
               <button
-                type="button"
-                className="fchip"
-                data-active={effectiveCat === "all"}
-                onClick={() => setCatFilter("all")}
+                onClick={() => setShowManager(true)}
+                className="flex items-center gap-1 bg-primary text-on-primary px-4 py-2 rounded-lg text-label-md font-label-md hover:opacity-90 active:scale-95 transition-all"
               >
-                전체
+                <span className="material-symbols-outlined text-[18px]">edit_location_alt</span>
+                공간 편집
               </button>
-              {categories.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className="fchip"
-                  data-active={effectiveCat === c}
-                  onClick={() => setCatFilter(c)}
-                >
-                  {c}
-                </button>
-              ))}
             </div>
           )}
         </div>
 
-        {/* 공간별 블록 */}
-        <div className="space-y-10 md:space-y-12">
-          {blocks.map((b, si) => {
-            const photos = b.photos.filter((p) => p.kind === photoKind);
-            return (
-              <section
-                key={b.space.id}
-                className="rise scroll-mt-8"
-                style={{ animationDelay: `${Math.min(si, 6) * 70}ms` }}
-              >
-                <div className="flex items-center gap-3 mb-5">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-tertiary-container/70 text-tertiary">
-                    <span
-                      className="material-symbols-outlined text-[20px]"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      {cfg.sectionIcon}
-                    </span>
-                  </span>
-                  {isAdmin ? (
-                    <input
-                      defaultValue={b.space.name}
-                      onBlur={(e) => {
-                        const v = e.target.value.trim();
-                        if (v && v !== b.space.name) renameSpace(b.space.id, v);
-                        else e.target.value = b.space.name;
-                      }}
-                      aria-label="공간 이름"
-                      className="text-headline-md font-headline-md text-primary bg-transparent border-b border-transparent hover:border-outline-variant focus:border-primary outline-none py-1 min-w-0 transition-colors"
-                    />
-                  ) : (
-                    <h2 className="text-headline-md font-headline-md text-primary">
-                      {b.space.name}
-                    </h2>
+        {/* 통합 테이블 */}
+        <div className="rise bg-surface-container-lowest rounded-xl shadow-soft overflow-hidden">
+          <div className="table-scroll overflow-x-auto custom-scrollbar">
+            <table className={`w-full ${cfg.minWidth} text-left border-collapse`}>
+              <thead>
+                <tr className="bg-surface-container-low border-b border-outline-variant">
+                  {showSpaceCol && (
+                    <th className="px-6 py-3">
+                      <FilterMenu
+                        label="공간"
+                        options={spaceMenuOptions}
+                        selected={spc}
+                        onChange={setSpaceFilter}
+                      />
+                    </th>
                   )}
+                  {isReq && (
+                    <th className="px-6 py-3">
+                      <FilterMenu
+                        label="분류"
+                        options={catMenuOptions}
+                        selected={cat}
+                        onChange={setCatFilter}
+                      />
+                    </th>
+                  )}
+                  <th className="px-6 py-3 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">
+                    {isReq ? "요구사항" : "현재 상태"}
+                  </th>
+                  <th className="px-6 py-3 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">
+                    메모
+                  </th>
+                  <th className="px-6 py-3 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">
+                    사진
+                  </th>
                   {isAdmin && (
-                    <button
-                      onClick={() => removeSpace(b.space.id)}
-                      title="공간 삭제"
-                      className="text-secondary hover:text-error transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-[20px]">
-                        delete
-                      </span>
-                    </button>
+                    <th className="w-10">
+                      <span className="sr-only">삭제</span>
+                    </th>
                   )}
-                </div>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/30">
+                {rows.map(({ b, r }) => (
+                  <tr
+                    key={r.id}
+                    className={
+                      isAdmin
+                        ? "align-top"
+                        : "align-top hover:bg-surface-container/50 transition-colors"
+                    }
+                  >
+                    {showSpaceCol &&
+                      (isAdmin ? (
+                        <td className="px-4 py-3.5">
+                          <select
+                            value={b.space.id}
+                            onChange={(e) =>
+                              moveRowSpace(b.space.id, r.id, e.target.value)
+                            }
+                            aria-label="공간"
+                            title={b.space.name}
+                            className="space-select"
+                          >
+                            {data.map((sb) => (
+                              <option key={sb.space.id} value={sb.space.id}>
+                                {sb.space.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      ) : (
+                        <td className="px-6 py-5 align-top">
+                          <span className="chip">{b.space.name}</span>
+                        </td>
+                      ))}
 
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-gutter items-start">
-                  {/* 좌: 텍스트 내용 */}
-                  <div className="xl:col-span-2 bg-surface-container-lowest rounded-xl shadow-soft overflow-hidden">
-                    {mode === "requirement" ? (
-                      <RequirementBlock
-                        bundle={b}
-                        isAdmin={isAdmin}
-                        filterCat={effectiveCat}
-                        onPatch={patchItem}
-                        onRemove={removeItem}
-                        onAdd={addItem}
-                        adding={addingItem === b.space.id}
-                      />
-                    ) : (
-                      <CurrentStateBlock
-                        bundle={b}
-                        isAdmin={isAdmin}
-                        onPatch={patchItem}
-                        onRemove={removeItem}
-                        onAdd={addItem}
-                        adding={addingItem === b.space.id}
-                      />
-                    )}
-                  </div>
+                    {isReq &&
+                      (isAdmin ? (
+                        <td className="px-4 py-3.5">
+                          <input
+                            defaultValue={catText(r)}
+                            onBlur={(e) =>
+                              patchItem(b.space.id, r.id, {
+                                category: e.target.value,
+                              })
+                            }
+                            placeholder="분류"
+                            className="chip-input w-24"
+                          />
+                        </td>
+                      ) : (
+                        <td className="px-6 py-5 align-top">
+                          <span className="chip">{catText(r) || "일반"}</span>
+                        </td>
+                      ))}
 
-                  {/* 우: 사진 */}
-                  <aside className="lift bg-surface-container-low rounded-xl p-5 shadow-soft">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-label-md font-label-md text-secondary">
-                        {cfg.photoLabel}
-                      </p>
-                      {isAdmin && (
-                        <PhotoUploadButton
-                          onSelect={(file) => addPhoto(b.space.id, file)}
-                        />
-                      )}
-                    </div>
-                    {photos.length > 0 ? (
-                      <AdminPhotos
-                        photos={photos}
-                        isAdmin={isAdmin}
-                        onRemove={(pid) => removePhoto(b.space.id, pid)}
-                      />
+                    {isAdmin ? (
+                      <>
+                        <td className="px-4 py-3.5">
+                          <AutoTextarea
+                            defaultValue={r.content}
+                            onBlur={(e) =>
+                              patchItem(b.space.id, r.id, {
+                                content: e.target.value,
+                              })
+                            }
+                            placeholder={isReq ? "요구사항 내용" : "현재 상태 내용"}
+                            className="cell-edit"
+                          />
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <AutoTextarea
+                            defaultValue={r.notes ?? ""}
+                            onBlur={(e) =>
+                              patchItem(b.space.id, r.id, {
+                                notes: e.target.value || null,
+                              })
+                            }
+                            placeholder="메모"
+                            className="cell-edit"
+                          />
+                        </td>
+                      </>
                     ) : (
-                      <div className="aspect-video w-full rounded-lg border border-dashed border-outline-variant flex items-center justify-center text-secondary text-caption">
-                        <span className="material-symbols-outlined mr-1 text-[18px]">
-                          image
-                        </span>
-                        사진 없음
-                      </div>
+                      <>
+                        <td className="px-6 py-5 align-top text-body-md text-on-surface-variant whitespace-pre-line">
+                          {r.content}
+                        </td>
+                        <td className="px-6 py-5 align-top text-body-md text-secondary whitespace-pre-line">
+                          {r.notes || "—"}
+                        </td>
+                      </>
                     )}
-                  </aside>
-                </div>
-              </section>
-            );
-          })}
-          {blocks.length === 0 && (
-            <div className="text-center text-secondary text-body-md py-16">
-              {catActive
-                ? `"${effectiveCat}" 분류에 해당하는 요구사항이 없습니다.`
-                : isAdmin
-                ? "위에서 공간을 추가하세요."
-                : "등록된 공간이 없습니다."}
-            </div>
+
+                    <td className={isAdmin ? "px-4 py-3.5" : "px-6 py-5 align-top"}>
+                      <PhotoCell
+                        photos={photosFor(r.id)}
+                        isAdmin={isAdmin}
+                        onUpload={(file) => addPhoto(b.space.id, r.id, file)}
+                        onRemove={(pid) => removePhoto(pid)}
+                      />
+                    </td>
+
+                    {isAdmin && (
+                      <td className="px-2 py-3.5 text-center align-top">
+                        <button
+                          onClick={() => removeItem(b.space.id, r.id)}
+                          title="삭제"
+                          aria-label="항목 삭제"
+                          className="text-secondary hover:text-error"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="material-symbols-outlined text-[20px]"
+                          >
+                            close
+                          </span>
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+
+                {rows.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={colCount}
+                      className="px-6 py-16 text-center text-secondary text-body-md"
+                    >
+                      {cat.length > 0 || spc.length > 0
+                        ? "선택한 필터에 해당하는 항목이 없습니다."
+                        : isAdmin
+                        ? data.length === 0
+                          ? "‘공간 편집’에서 공간을 먼저 추가하세요."
+                          : "아래 버튼으로 항목을 추가하세요."
+                        : isReq
+                        ? "등록된 요구사항이 없습니다."
+                        : "등록된 현재상태가 없습니다."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {isAdmin && data.length > 0 && (
+            <button
+              onClick={addRow}
+              disabled={addingItem}
+              className="w-full flex items-center justify-center gap-2 py-4 text-label-md font-label-md text-primary border-t border-outline-variant hover:bg-surface-container-low transition-colors disabled:opacity-60"
+            >
+              {addingItem ? (
+                <Spinner size={18} />
+              ) : (
+                <span className="material-symbols-outlined text-[18px]">add</span>
+              )}
+              {addingItem ? "추가 중…" : cfg.addLabel}
+            </button>
           )}
         </div>
       </main>
       <Footer />
-    </div>
-  );
-}
 
-// ─── 요구사항 블록 ──────────────────────────────────────────────────────────
-function RequirementBlock({
-  bundle,
-  isAdmin,
-  filterCat,
-  onPatch,
-  onRemove,
-  onAdd,
-  adding,
-}: {
-  bundle: SpaceBundle;
-  isAdmin: boolean;
-  filterCat: string;
-  onPatch: (spaceId: string, id: string, patch: Record<string, unknown>) => void;
-  onRemove: (spaceId: string, id: string) => void;
-  onAdd: (spaceId: string) => void;
-  adding: boolean;
-}) {
-  const spaceId = bundle.space.id;
-  // 관리자는 행을 숨기지 않는다(분류 편집 중 행이 사라지는 것 방지). 공간 단위 필터는
-  // 부모 blocks 에서 이미 적용됨. 뷰어(업체)만 행 단위로 필터링.
-  const rows =
-    filterCat === "all" || isAdmin
-      ? bundle.requirements
-      : bundle.requirements.filter(
-          (r) => (r.category || "").trim() === filterCat
-        );
-  if (!isAdmin && bundle.requirements.length === 0) {
-    return (
-      <div className="p-8 text-center text-secondary text-body-md">
-        등록된 요구사항이 없습니다.
-      </div>
-    );
-  }
-  return (
-    <div className="overflow-x-auto custom-scrollbar">
-      <table className="w-full min-w-[520px] text-left border-collapse">
-        <thead>
-          <tr className="bg-surface-container-low border-b border-outline-variant">
-            <th className="px-8 py-3.5 text-label-md font-label-md text-secondary uppercase tracking-wider">
-              분류
-            </th>
-            <th className="px-8 py-3.5 text-label-md font-label-md text-secondary uppercase tracking-wider">
-              요구사항
-            </th>
-            <th className="px-8 py-3.5 text-label-md font-label-md text-secondary uppercase tracking-wider">
-              메모
-            </th>
-            {isAdmin && <th className="w-10" />}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-outline-variant/30">
-          {rows.map((r) =>
-            isAdmin ? (
-              <tr key={r.id} className="align-top">
-                <td className="px-4 py-3.5">
-                  <input
-                    defaultValue={r.category}
-                    onBlur={(e) =>
-                      onPatch(spaceId, r.id, { category: e.target.value })
-                    }
-                    placeholder="분류"
-                    className="chip-input w-20 ml-2 mt-1.5"
-                  />
-                </td>
-                <td className="px-4 py-3.5">
-                  <AutoTextarea
-                    defaultValue={r.content}
-                    onBlur={(e) =>
-                      onPatch(spaceId, r.id, { content: e.target.value })
-                    }
-                    placeholder="요구사항 내용"
-                    className="cell-edit"
-                  />
-                </td>
-                <td className="px-4 py-3.5">
-                  <AutoTextarea
-                    defaultValue={r.notes ?? ""}
-                    onBlur={(e) =>
-                      onPatch(spaceId, r.id, { notes: e.target.value || null })
-                    }
-                    placeholder="메모"
-                    className="cell-edit"
-                  />
-                </td>
-                <td className="px-2 py-3.5 text-center">
-                  <button
-                    onClick={() => onRemove(spaceId, r.id)}
-                    title="삭제"
-                    className="text-secondary hover:text-error"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">close</span>
-                  </button>
-                </td>
-              </tr>
-            ) : (
-              <tr
-                key={r.id}
-                className="hover:bg-surface-container/50 transition-colors"
-              >
-                <td className="px-8 py-7 align-top">
-                  <span className="chip">{r.category || "일반"}</span>
-                </td>
-                <td className="px-8 py-7 align-top text-body-md text-on-surface-variant">
-                  {r.content}
-                </td>
-                <td className="px-8 py-7 align-top text-body-md text-secondary whitespace-pre-line">
-                  {r.notes || "—"}
-                </td>
-              </tr>
-            )
-          )}
-        </tbody>
-      </table>
-      {isAdmin && (
-        <AddItemButton
-          onClick={() => onAdd(spaceId)}
-          label="요구사항 추가"
-          busy={adding}
+      {showManager && (
+        <SpaceManager
+          spaces={data.map((b) => b.space)}
+          onAdd={addSpace}
+          onRename={renameSpace}
+          onRemove={removeSpace}
+          onClose={() => setShowManager(false)}
         />
       )}
-    </div>
-  );
-}
-
-// ─── 현재상태 블록 ──────────────────────────────────────────────────────────
-function CurrentStateBlock({
-  bundle,
-  isAdmin,
-  onPatch,
-  onRemove,
-  onAdd,
-  adding,
-}: {
-  bundle: SpaceBundle;
-  isAdmin: boolean;
-  onPatch: (spaceId: string, id: string, patch: Record<string, unknown>) => void;
-  onRemove: (spaceId: string, id: string) => void;
-  onAdd: (spaceId: string) => void;
-  adding: boolean;
-}) {
-  const spaceId = bundle.space.id;
-  if (!isAdmin && bundle.currentStates.length === 0) {
-    return (
-      <div className="p-8 text-center text-secondary text-body-md">
-        등록된 현재상태가 없습니다.
-      </div>
-    );
-  }
-  return (
-    <div className="overflow-x-auto custom-scrollbar">
-      <table className="w-full min-w-[420px] text-left border-collapse">
-        <thead>
-          <tr className="bg-surface-container-low border-b border-outline-variant">
-            <th className="px-8 py-3.5 text-label-md font-label-md text-secondary uppercase tracking-wider">
-              현재 상태
-            </th>
-            <th className="px-8 py-3.5 text-label-md font-label-md text-secondary uppercase tracking-wider">
-              메모
-            </th>
-            {isAdmin && <th className="w-10" />}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-outline-variant/30">
-          {bundle.currentStates.map((c) =>
-            isAdmin ? (
-              <tr key={c.id} className="align-top">
-                <td className="px-4 py-3.5">
-                  <AutoTextarea
-                    defaultValue={c.content}
-                    onBlur={(e) =>
-                      onPatch(spaceId, c.id, { content: e.target.value })
-                    }
-                    placeholder="현재 상태 내용"
-                    className="cell-edit"
-                  />
-                </td>
-                <td className="px-4 py-3.5">
-                  <AutoTextarea
-                    defaultValue={c.notes ?? ""}
-                    onBlur={(e) =>
-                      onPatch(spaceId, c.id, { notes: e.target.value || null })
-                    }
-                    placeholder="메모 (선택)"
-                    className="cell-edit"
-                  />
-                </td>
-                <td className="px-2 py-3.5 text-center">
-                  <button
-                    onClick={() => onRemove(spaceId, c.id)}
-                    title="삭제"
-                    className="text-secondary hover:text-error"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">close</span>
-                  </button>
-                </td>
-              </tr>
-            ) : (
-              <tr
-                key={c.id}
-                className="hover:bg-surface-container/50 transition-colors"
-              >
-                <td className="px-8 py-7 align-top text-body-md text-on-surface-variant whitespace-pre-line">
-                  {c.content}
-                </td>
-                <td className="px-8 py-7 align-top text-body-md text-secondary whitespace-pre-line">
-                  {c.notes || "—"}
-                </td>
-              </tr>
-            )
-          )}
-        </tbody>
-      </table>
-      {isAdmin && (
-        <AddItemButton
-          onClick={() => onAdd(spaceId)}
-          label="현재상태 추가"
-          busy={adding}
-        />
-      )}
-    </div>
-  );
-}
-
-function AddItemButton({
-  onClick,
-  label,
-  busy,
-}: {
-  onClick: () => void;
-  label: string;
-  busy: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={busy}
-      className="w-full flex items-center justify-center gap-2 py-4 text-label-md font-label-md text-primary border-t border-outline-variant hover:bg-surface-container-low transition-colors disabled:opacity-60"
-    >
-      {busy ? (
-        <Spinner size={18} />
-      ) : (
-        <span className="material-symbols-outlined text-[18px]">add</span>
-      )}
-      {busy ? "추가 중…" : label}
-    </button>
-  );
-}
-
-function PhotoUploadButton({ onSelect }: { onSelect: (file: File) => void }) {
-  const ref = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-  return (
-    <>
-      <button
-        onClick={() => ref.current?.click()}
-        disabled={busy}
-        className="flex items-center gap-1 text-label-md text-primary hover:underline disabled:opacity-50"
-      >
-        {busy ? (
-          <Spinner size={18} />
-        ) : (
-          <span className="material-symbols-outlined text-[18px]">upload</span>
-        )}
-        {busy ? "업로드 중…" : "사진 추가"}
-      </button>
-      <input
-        ref={ref}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={async (e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          setBusy(true);
-          try {
-            await onSelect(file);
-          } finally {
-            setBusy(false);
-            if (ref.current) ref.current.value = "";
-          }
-        }}
-      />
-    </>
-  );
-}
-
-function AdminPhotos({
-  photos,
-  isAdmin,
-  onRemove,
-}: {
-  photos: Photo[];
-  isAdmin: boolean;
-  onRemove: (id: string) => void;
-}) {
-  if (!isAdmin) return <PhotoGrid photos={photos} />;
-  // admin: 삭제 버튼 오버레이 + 라이트박스
-  return (
-    <div className="space-y-3">
-      <PhotoGrid photos={photos} />
-      <div className="flex flex-wrap gap-2">
-        {photos.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => onRemove(p.id)}
-            className="flex items-center gap-1 text-caption text-secondary hover:text-error border border-outline-variant rounded-full px-2 py-1"
-            title="사진 삭제"
-          >
-            <span className="material-symbols-outlined text-[14px]">delete</span>
-            {p.caption?.slice(0, 12) || "사진"}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

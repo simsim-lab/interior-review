@@ -23,6 +23,8 @@ const ph = (id: string, space_id: string, sort: number): Photo => ({
   id,
   space_id,
   kind: "requirement",
+  requirement_id: null,
+  current_state_id: null,
   url: "",
   caption: null,
   sort,

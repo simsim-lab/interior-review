@@ -31,16 +31,25 @@ create table if not exists current_state (
 );
 create index if not exists current_state_space_idx on current_state(space_id, sort);
 
--- ─── 사진 (공간별, requirement | current) ──────────────────────────────────
+-- ─── 사진 (행 단위: 요구사항 | 현재상태) ───────────────────────────────────
+-- 사진은 개별 행에 귀속된다. kind 에 따라 requirement_id | current_state_id 중
+-- 한쪽만 채워짐. space_id 는 스토리지 경로·공간별 조회용으로 함께 유지.
 create table if not exists photos (
-  id        uuid primary key default gen_random_uuid(),
-  space_id  uuid not null references spaces(id) on delete cascade,
-  kind      text not null check (kind in ('requirement','current')),
-  url       text not null,
-  caption   text,
-  sort      int  not null default 0
+  id                uuid primary key default gen_random_uuid(),
+  space_id          uuid not null references spaces(id) on delete cascade,
+  kind              text not null check (kind in ('requirement','current')),
+  requirement_id    uuid references requirements(id) on delete cascade,
+  current_state_id  uuid references current_state(id) on delete cascade,
+  url               text not null,
+  caption           text,
+  sort              int  not null default 0
 );
+-- 기존 DB 마이그레이션(테이블이 이미 있을 때) — 컬럼 추가는 멱등.
+alter table photos add column if not exists requirement_id   uuid references requirements(id)   on delete cascade;
+alter table photos add column if not exists current_state_id uuid references current_state(id)  on delete cascade;
 create index if not exists photos_space_idx on photos(space_id, kind, sort);
+create index if not exists photos_requirement_idx   on photos(requirement_id);
+create index if not exists photos_current_state_idx on photos(current_state_id);
 
 -- ─── 체크리스트 (admin 전용 — 업체에게 절대 노출 금지) ──────────────────────
 create table if not exists checklist_items (
