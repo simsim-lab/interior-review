@@ -50,12 +50,12 @@ export default defineConfig({
     {
       name: "public", // bypass OFF — 공개 페이지 + 접근 차단
       use: { baseURL: `http://localhost:${PUBLIC_PORT}` },
-      testMatch: /(routing|public-pages|checklist-access|lightbox)\.spec\.ts/,
+      testMatch: /(routing|public-pages|checklist-access|loading)\.spec\.ts/,
     },
     {
       name: "admin", // bypass ON — 관리자 화면/편집
       use: { baseURL: `http://localhost:${ADMIN_PORT}` },
-      testMatch: /(admin-checklist|admin-editing)\.spec\.ts/,
+      testMatch: /(admin-checklist|admin-editing|lightbox)\.spec\.ts/,
     },
   ],
 });
