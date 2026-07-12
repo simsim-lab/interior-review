@@ -1,7 +1,16 @@
-queue_rules:
-  - name: default
-    merge_method: merge
-    queue_conditions: &ci_pass
+pull_request_rules:
+  - name: dismiss approvals on new commits
+    conditions:
+      - base = main
+    actions:
+      dismiss_reviews:
+        approved: true
+        message: "New commits pushed — approvals dismissed."
+
+  - name: auto-merge Dependabot PRs when CI passes
+    conditions:
+      - base = main
+      - author = dependabot[bot]
       - check-success = lint
       - check-success = test
       - check-success = types
@@ -12,44 +21,38 @@ queue_rules:
       - check-success = semgrep
       - check-success = gitleaks
       - check-success = npm-audit
-    merge_conditions: *ci_pass
-
-  - name: dependabot
-    merge_method: squash
-    queue_conditions: *ci_pass
-    merge_conditions: *ci_pass
-
-pull_request_rules:
-  - name: dismiss approvals on new commits
-    conditions:
-      - base = main
-    actions:
-      dismiss_reviews:
-        approved: true
-        message: "New commits pushed — approvals dismissed."
-
-  - name: auto-queue Dependabot PRs when CI passes
-    conditions:
-      - base = main
-      - author = dependabot[bot]
     actions:
       review:
         type: APPROVE
         message: Dependabot PR — all CI checks passed, auto-approving.
-      queue:
-        name: dependabot
+      merge:
+        method: squash
+        commit_message_format:
+          title: pr-title
+          body: pr-body
 
-  - name: auto-queue PRs when all CI passes
-    # 사람 PR도 필수 CI 가 모두 통과하면 Mergify 가 머지 큐에 넣어 자동 머지한다.
-    # 막고 싶으면 draft 로 두거나 do-not-merge 라벨을 붙인다. (dependabot 은 위 전용 룰 사용)
-    # 주의: pull_request_rules 의 `merge` 액션은 deprecated 라 자동 실행되지 않는다.
-    #       반드시 `queue` 액션 + 위 queue_rules 조합을 써야 자동 머지된다.
+  - name: auto-merge PRs when all CI passes
+    # 사람 PR도 필수 CI 가 모두 통과하면 Mergify 가 자동 머지한다.
+    # 막고 싶으면 draft 로 두거나 `do-not-merge` 라벨을 붙인다. (dependabot 은 위 전용 룰 사용)
+    # NOTE: queue(머지큐) 액션은 이 repo 브랜치 보호("up to date" 관련)와 호환 안 돼
+    #       "Configuration not compatible with a branch protection setting" 로 막힌다.
+    #       macro-logbot 과 동일하게 순수 merge 액션을 쓴다 (직접 머지, 큐 미사용).
     conditions:
       - base = main
       - author != dependabot[bot]
       - -draft
       - -conflict
-      - label != do-not-merge
+      - -label = do-not-merge
+      - check-success = lint
+      - check-success = test
+      - check-success = types
+      - check-success = build
+      - check-success = e2e
+      - check-success = codeql
+      - check-success = CodeQL
+      - check-success = semgrep
+      - check-success = gitleaks
+      - check-success = npm-audit
     actions:
-      queue:
-        name: default
+      merge:
+        method: merge
