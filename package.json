@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test lib/__tests__/*.test.ts",
+    "test:e2e": "playwright test",
     "seed": "tsx scripts/seed-supabase.ts"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.6",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.3.2",
     "@types/node": "^26.1.0",
     "@types/react": "^19.0.0",
