@@ -23,8 +23,10 @@ const SAVE_ERR = "저장에 실패했습니다. 잠시 후 다시 시도해 주�
 export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
   const [list, setList] = useState<ChecklistItem[]>(items);
   const [saving, setSaving] = useState<string | null>(null);
-  const [flash, setFlash] = useState<string | null>(null);
+  const [flash, setFlash] = useState<{ msg: string } | null>(null);
 
+  // 알림 토스트 — 매번 새 객체라 같은 문구가 연속돼도 4초 타이머가 갱신됨.
+  const notify = (msg: string) => setFlash({ msg });
   useEffect(() => {
     if (!flash) return;
     const t = setTimeout(() => setFlash(null), 4000);
@@ -36,15 +38,23 @@ export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
   }
 
   async function persist(id: string, patch: Partial<ChecklistItem>) {
-    const prev = list;
+    // 실패 시 되돌릴 값: 해당 항목의 패치된 필드만(다른 편집 보존).
+    const before = list.find((it) => it.id === id) as
+      | Record<string, unknown>
+      | undefined;
+    const revert = before
+      ? (Object.fromEntries(
+          Object.keys(patch).map((k) => [k, before[k]])
+        ) as Partial<ChecklistItem>)
+      : null;
     patchLocal(id, patch); // 낙관적 반영
     if (!canPersist) return; // seed 모드: 로컬만
     setSaving(id);
     try {
       await updateChecklistItem(id, patch);
     } catch {
-      setList(prev); // 실패 시 롤백
-      setFlash(SAVE_ERR);
+      if (revert) patchLocal(id, revert); // 해당 항목 필드만 복원
+      notify(SAVE_ERR);
     } finally {
       setSaving(null);
     }
@@ -61,18 +71,26 @@ export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
       });
       setList((prev) => [...prev, item]);
     } catch {
-      setFlash("항목 추가에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      notify("항목 추가에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     }
   }
 
   async function removeItem(id: string) {
-    const prev = list;
+    const idx = list.findIndex((i) => i.id === id);
+    const removed = list[idx];
     setList((p) => p.filter((i) => i.id !== id)); // 낙관적 제거
     try {
       await deleteChecklistItem(id);
     } catch {
-      setList(prev); // 실패 시 복원
-      setFlash("삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      // 실패 시 원위치에 복원(다른 편집 보존)
+      if (removed) {
+        setList((p) => {
+          const next = [...p];
+          next.splice(Math.min(idx, next.length), 0, removed);
+          return next;
+        });
+      }
+      notify("삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     }
   }
 
@@ -86,7 +104,7 @@ export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
           className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 flex items-center gap-2 rounded-lg bg-inverse-surface px-4 py-2.5 text-caption text-inverse-on-surface shadow-lift"
         >
           <span className="material-symbols-outlined text-[16px]">error</span>
-          {flash}
+          {flash.msg}
         </div>
       )}
       <Hero

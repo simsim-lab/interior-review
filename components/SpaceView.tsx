@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { SpaceBundle, PhotoKind, Photo } from "@/lib/types";
 import PhotoGrid from "./PhotoGrid";
 import AutoTextarea from "./AutoTextarea";
@@ -71,11 +71,12 @@ export default function SpaceView({
   const [adding, setAdding] = useState(false);
   const [showSpaceInput, setShowSpaceInput] = useState(false);
   const [catFilter, setCatFilter] = useState<string>("all");
-  const [flash, setFlash] = useState<string | null>(null);
+  const [flash, setFlash] = useState<{ msg: string } | null>(null);
   const photoKind = cfg.photoKind;
   const itemTable = cfg.table;
 
-  // 저장 실패 등 사용자 알림 토스트 (4초 후 자동 사라짐)
+  // 알림 토스트 — 매번 새 객체라 같은 문구가 연속돼도 4초 타이머가 갱신됨.
+  const notify = (msg: string) => setFlash({ msg });
   useEffect(() => {
     if (!flash) return;
     const t = setTimeout(() => setFlash(null), 4000);
@@ -85,31 +86,31 @@ export default function SpaceView({
   const visible =
     active === "all" ? data : data.filter((b) => b.space.slug === active);
 
-  // 분류 필터 (요구사항 모드): 전체 공간의 고유 분류 목록
-  const categories =
-    mode === "requirement"
-      ? Array.from(
-          new Set(
-            data.flatMap((b) =>
-              b.requirements.map((r) => (r.category || "").trim()).filter(Boolean)
+  // 분류 필터 (요구사항 모드): 전체 공간의 고유 분류 목록. useMemo 로 참조 안정화.
+  const categories = useMemo(
+    () =>
+      mode === "requirement"
+        ? Array.from(
+            new Set(
+              data.flatMap((b) =>
+                b.requirements
+                  .map((r) => (r.category || "").trim())
+                  .filter(Boolean)
+              )
             )
           )
-        )
-      : [];
-  const catActive = mode === "requirement" && catFilter !== "all";
+        : [],
+    [mode, data]
+  );
+  // 선택된 분류가 사라지면 렌더 중 파생값으로 "전체"처럼 취급 — 死상태·깜빡임 없음.
+  const effectiveCat =
+    mode === "requirement" && categories.includes(catFilter) ? catFilter : "all";
+  const catActive = effectiveCat !== "all";
   const blocks = visible.filter((b) =>
     catActive
-      ? b.requirements.some((r) => (r.category || "").trim() === catFilter)
+      ? b.requirements.some((r) => (r.category || "").trim() === effectiveCat)
       : true
   );
-
-  // 선택돼 있던 분류가 사라지면(마지막 항목 삭제/분류 변경) 필터를 전체로 자동 복귀 —
-  // 어떤 칩도 active 가 아닌 채 빈 목록만 남는 死상태 방지.
-  useEffect(() => {
-    if (catFilter !== "all" && !categories.includes(catFilter)) {
-      setCatFilter("all");
-    }
-  }, [catFilter, categories]);
 
   // ─── 공간 ───
   async function addSpace() {
@@ -125,23 +126,25 @@ export default function SpaceView({
       setNewSpace("");
       setShowSpaceInput(false);
     } catch {
-      setFlash(SAVE_ERR);
+      notify(SAVE_ERR);
     } finally {
       setAdding(false);
     }
   }
 
-  // 낙관적 변경: 실패 시 이전 상태로 롤백 + 알림.
+  // 낙관적 변경: 실패 시 해당 공간의 이름만 되돌림(다른 편집 보존).
   function renameSpace(spaceId: string, name: string) {
-    const prev = data;
-    setData((d) =>
-      d.map((b) =>
-        b.space.id === spaceId ? { ...b, space: { ...b.space, name } } : b
-      )
-    );
+    const before = data.find((b) => b.space.id === spaceId)?.space.name;
+    const setName = (v: string) =>
+      setData((d) =>
+        d.map((b) =>
+          b.space.id === spaceId ? { ...b, space: { ...b.space, name: v } } : b
+        )
+      );
+    setName(name);
     updateSpace(spaceId, { name }).catch(() => {
-      setData(prev);
-      setFlash(SAVE_ERR);
+      if (before !== undefined) setName(before);
+      notify(SAVE_ERR);
     });
   }
 
@@ -151,7 +154,7 @@ export default function SpaceView({
       await deleteSpace(spaceId);
       setData((d) => d.filter((b) => b.space.id !== spaceId));
     } catch {
-      setFlash("삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      notify("삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     }
   }
 
@@ -191,34 +194,46 @@ export default function SpaceView({
         );
       }
     } catch {
-      setFlash(SAVE_ERR);
+      notify(SAVE_ERR);
     }
   }
 
   function patchItem(spaceId: string, id: string, patch: Record<string, unknown>) {
-    const prev = data;
-    setData((d) =>
-      d.map((b) => {
-        if (b.space.id !== spaceId) return b;
-        if (mode === "requirement") {
+    // 실패 시 되돌릴 값: 해당 항목의 "패치된 필드만" 캡처(다른 편집 보존).
+    const bundle = data.find((b) => b.space.id === spaceId);
+    const rows = mode === "requirement" ? bundle?.requirements : bundle?.currentStates;
+    const before = rows?.find((r) => r.id === id) as
+      | Record<string, unknown>
+      | undefined;
+    const revert = before
+      ? Object.fromEntries(Object.keys(patch).map((k) => [k, before[k]]))
+      : null;
+
+    const apply = (p: Record<string, unknown>) =>
+      setData((d) =>
+        d.map((b) => {
+          if (b.space.id !== spaceId) return b;
+          if (mode === "requirement") {
+            return {
+              ...b,
+              requirements: b.requirements.map((r) =>
+                r.id === id ? { ...r, ...p } : r
+              ),
+            };
+          }
           return {
             ...b,
-            requirements: b.requirements.map((r) =>
-              r.id === id ? { ...r, ...patch } : r
+            currentStates: b.currentStates.map((c) =>
+              c.id === id ? { ...c, ...p } : c
             ),
           };
-        }
-        return {
-          ...b,
-          currentStates: b.currentStates.map((c) =>
-            c.id === id ? { ...c, ...patch } : c
-          ),
-        };
-      })
-    );
+        })
+      );
+
+    apply(patch);
     updateRow(itemTable, id, patch).catch(() => {
-      setData(prev);
-      setFlash(SAVE_ERR);
+      if (revert) apply(revert); // 해당 항목의 해당 필드만 복원
+      notify(SAVE_ERR);
     });
   }
 
@@ -234,7 +249,7 @@ export default function SpaceView({
         })
       );
     } catch {
-      setFlash("삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      notify("삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     }
   }
 
@@ -255,7 +270,7 @@ export default function SpaceView({
         )
       );
     } catch {
-      setFlash("사진 업로드에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      notify("사진 업로드에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     }
   }
 
@@ -270,7 +285,7 @@ export default function SpaceView({
         )
       );
     } catch {
-      setFlash("사진 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      notify("사진 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     }
   }
 
@@ -282,7 +297,7 @@ export default function SpaceView({
           className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 flex items-center gap-2 rounded-lg bg-inverse-surface px-4 py-2.5 text-caption text-inverse-on-surface shadow-lift"
         >
           <span className="material-symbols-outlined text-[16px]">error</span>
-          {flash}
+          {flash.msg}
         </div>
       )}
       <Hero
@@ -383,7 +398,7 @@ export default function SpaceView({
               <button
                 type="button"
                 className="fchip"
-                data-active={catFilter === "all"}
+                data-active={effectiveCat === "all"}
                 onClick={() => setCatFilter("all")}
               >
                 전체
@@ -393,7 +408,7 @@ export default function SpaceView({
                   key={c}
                   type="button"
                   className="fchip"
-                  data-active={catFilter === c}
+                  data-active={effectiveCat === c}
                   onClick={() => setCatFilter(c)}
                 >
                   {c}
@@ -458,7 +473,7 @@ export default function SpaceView({
                       <RequirementBlock
                         bundle={b}
                         isAdmin={isAdmin}
-                        filterCat={catFilter}
+                        filterCat={effectiveCat}
                         onPatch={patchItem}
                         onRemove={removeItem}
                         onAdd={addItem}
@@ -508,7 +523,7 @@ export default function SpaceView({
           {blocks.length === 0 && (
             <div className="text-center text-secondary text-body-md py-16">
               {catActive
-                ? `"${catFilter}" 분류에 해당하는 요구사항이 없습니다.`
+                ? `"${effectiveCat}" 분류에 해당하는 요구사항이 없습니다.`
                 : isAdmin
                 ? "위에서 공간을 추가하세요."
                 : "등록된 공간이 없습니다."}
