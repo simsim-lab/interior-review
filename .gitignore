@@ -1,5 +1,7 @@
 node_modules/
 .next/
+.next-e2e-public/
+.next-e2e-admin/
 dist/
 *.log
 .env
@@ -11,3 +13,8 @@ next-env.d.ts
 .claude/
 .DS_Store
 .env*
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
