@@ -1,0 +1,38 @@
+name: build
+
+# Next.js production build 검증 — 머지 전 빌드 회귀 차단.
+# Supabase env 는 lib/supabase/* 에서 `&&` 가드로 부재 허용 → placeholder 로 빌드 통과.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Next.js build
+        # NEXT_PUBLIC_* placeholder — 실제 secret 아님(빌드 시 env 부재 회귀만 방지).
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+        run: npm run build

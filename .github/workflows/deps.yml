@@ -1,0 +1,54 @@
+name: deps
+
+# Dependency CVE scan — npm audit. Dependabot Alerts 의 PR 시점 inline backstop.
+# production 의존성의 HIGH+ 취약점을 머지 전에 차단한다.
+# (Next 16 업그레이드로 기존 next HIGH CVE 는 해소됨 — 현재 prod HIGH 0건.)
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # 매주 수요일 03:00 UTC.
+    - cron: "0 3 * * 3"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deps-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: npm audit (production deps, HIGH+ fail)
+        # --omit=dev: 런타임에 실리는 prod 의존성만 gate (dev 툴 취약점은 배포 표면 아님).
+        # --audit-level=high: HIGH/CRITICAL 발견 시 fail.
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: npm audit (full report, non-blocking)
+        # dev 포함 전체 — fail 시키지 않고 아티팩트로만 노출(followup 판단용).
+        if: always()
+        run: npm audit --json > npm-audit.json || true
+
+      - name: Upload npm-audit json
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-json
+          path: npm-audit.json
+          if-no-files-found: ignore
+          retention-days: 30

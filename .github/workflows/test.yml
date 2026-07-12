@@ -1,0 +1,36 @@
+name: test
+
+# Mechanical unit test — node:test 러너 (lib/__tests__/*.test.ts, tsx 로더).
+# 순수 로직만 검증(인가 allowlist / 공간 번들링 / 체크리스트 통계 / sort). AI reviewer 는
+# 실행·커버리지 검토 금지 — strategy / edge case 만.
+# 참고: 라이트박스 전체화면 회귀는 유닛으로 못 잡음 → E2E(별도 follow-up) 대상.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Unit tests (node:test)
+        run: npm test

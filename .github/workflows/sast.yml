@@ -1,0 +1,56 @@
+name: sast
+
+# SAST (Static Application Security Testing) — CodeQL + semgrep.
+# public repo → CodeQL 무료. AI reviewer 는 알려진 CVE/SAST pattern 검토 금지 —
+# 본 영역 mechanical, reviewer 는 business-logic flaw / novel pattern 만.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # 매주 월요일 03:00 UTC — 새 rule 적용 catch.
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+concurrency:
+  group: sast-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
+
+  semgrep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: semgrep/semgrep:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: semgrep ci
+        # p/javascript + p/typescript + p/react + p/security-audit + p/owasp-top-ten.
+        # `semgrep ci` 는 PR 일 때 diff-aware (변경 file 만 scan).
+        run: semgrep ci
+        env:
+          # SEMGREP_APP_TOKEN 미설정 OK — public ruleset 만 사용.
+          SEMGREP_RULES: "p/javascript p/typescript p/react p/security-audit p/owasp-top-ten"

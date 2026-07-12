@@ -1,0 +1,34 @@
+name: lint
+
+# Mechanical lint (ESLint flat config) — PR mechanical 영역.
+# eslint.config.mjs = eslint-config-next 16 (core-web-vitals + typescript). AI reviewer 는 검토 금지.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
