@@ -268,6 +268,7 @@ body {
   color: #6b5f4c; /* secondary */
   border: 1px solid transparent;
   background-color: transparent;
+  white-space: nowrap; /* "공간"·"분류" 라벨이 좁은 열에서 줄바꿈되지 않게 */
   transition: all 0.15s ease;
 }
 .filter-head:hover {
@@ -275,12 +276,13 @@ body {
   color: var(--wood);
   background-color: #f6efe1;
 }
+/* 활성 = 앱 공통 오커 액센트(탭 밑줄·별점과 같은 언어) — 헤더에 과하지 않게 */
 .filter-head[data-active="true"] {
-  color: #f7f1e6;
-  background-color: var(--wood);
-  border-color: var(--wood);
+  color: var(--ochre);
+  background-color: rgba(176, 125, 52, 0.1);
+  border-color: rgba(176, 125, 52, 0.34);
 }
-/* 활성 선택 개수 배지 */
+/* 활성 선택 개수 배지 — 오커 필 */
 .filter-badge {
   display: inline-grid;
   place-items: center;
@@ -291,8 +293,8 @@ body {
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
-  color: var(--wood);
-  background-color: #f7f1e6;
+  color: #fbf7ee;
+  background-color: var(--ochre);
 }
 /* 드롭다운 패널 */
 .filter-panel {
@@ -306,6 +308,40 @@ body {
   border: 1px solid #ddd0ba;
   background-color: #fefcf7;
   box-shadow: var(--shadow-lift);
+}
+
+/* "공간" 셀 드롭다운 — 분류 칩과 같은 필(pill) 언어, 단 채움 아닌 아웃라인 +
+   셰브론으로 "바꿀 수 있는 값"임을 표시. 폼 상자 느낌을 덜어낸다. */
+.space-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 30px;
+  max-width: 8.5rem;
+  padding: 0 1.55rem 0 0.72rem;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--wood);
+  background-color: transparent;
+  border: 1px solid #ddd0ba;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234a3a29' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 11px;
+  transition: border-color 0.15s ease, background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.space-select:hover {
+  border-color: var(--ochre);
+  background-color: rgba(176, 125, 52, 0.06);
+}
+.space-select:focus,
+.space-select:focus-visible {
+  outline: none;
+  border-color: var(--ochre);
+  box-shadow: 0 0 0 2px rgba(176, 125, 52, 0.2);
 }
 
 /* ─── production 보호 layer (hakgun-viewer 패턴) ────────────────────────── */

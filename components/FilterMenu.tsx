@@ -61,11 +61,14 @@ export default function FilterMenu({
         className="filter-head"
         title={`${label} 필터`}
       >
-        <span className="text-label-md font-label-md uppercase tracking-wider">
+        <span className="whitespace-nowrap text-label-md font-label-md uppercase tracking-wider">
           {label}
         </span>
-        <span className="material-symbols-outlined text-[16px]">
-          filter_list
+        <span
+          className="material-symbols-outlined text-[15px]"
+          style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}
+        >
+          filter_alt
         </span>
         {active && <span className="filter-badge">{selected.length}</span>}
       </button>
@@ -100,7 +103,8 @@ export default function FilterMenu({
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggle(opt.value)}
-                      className="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
+                      style={{ accentColor: "var(--ochre)" }}
+                      className="h-[15px] w-[15px] rounded-[4px] border-outline-variant"
                     />
                     <span className="truncate text-body-md text-on-surface">
                       {opt.label}

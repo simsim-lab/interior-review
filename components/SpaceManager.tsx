@@ -53,7 +53,12 @@ export default function SpaceManager({
       >
         <div className="mb-5 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-headline-md font-headline-md text-primary">
-            <span className="material-symbols-outlined">edit_location_alt</span>
+            <span
+              className="material-symbols-outlined"
+              style={{ color: "var(--ochre)", fontVariationSettings: "'FILL' 1" }}
+            >
+              edit_location_alt
+            </span>
             공간 편집
           </h3>
           <button

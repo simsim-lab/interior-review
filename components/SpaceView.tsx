@@ -502,7 +502,7 @@ export default function SpaceView({
                               moveRowSpace(b.space.id, r.id, e.target.value)
                             }
                             aria-label="공간"
-                            className="field py-1.5"
+                            className="space-select"
                           >
                             {data.map((sb) => (
                               <option key={sb.space.id} value={sb.space.id}>
