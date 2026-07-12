@@ -13,6 +13,9 @@ updates:
       time: "03:00"
       timezone: "Asia/Seoul"
     open-pull-requests-limit: 5
+    # 신규 패키지 버전은 7일 대기 후 제안 — 갓 게시된 악성/불안정 버전 회피 (supply-chain).
+    cooldown:
+      default-days: 7
     labels:
       - "dependencies"
       - "javascript"
@@ -35,6 +38,9 @@ updates:
       time: "03:30"
       timezone: "Asia/Seoul"
     open-pull-requests-limit: 5
+    # 신규 액션 버전은 7일 대기 후 제안 (supply-chain).
+    cooldown:
+      default-days: 7
     labels:
       - "dependencies"
       - "github-actions"
