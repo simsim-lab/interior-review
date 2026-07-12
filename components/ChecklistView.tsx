@@ -10,6 +10,7 @@ import {
   deleteChecklistItem,
 } from "@/lib/mutations";
 import { checklistStats } from "@/lib/checklist";
+import { revertPatch, insertAt } from "@/lib/util";
 import StarRating from "./StarRating";
 import AutoTextarea from "./AutoTextarea";
 import Footer from "./Footer";
@@ -42,11 +43,7 @@ export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
     const before = list.find((it) => it.id === id) as
       | Record<string, unknown>
       | undefined;
-    const revert = before
-      ? (Object.fromEntries(
-          Object.keys(patch).map((k) => [k, before[k]])
-        ) as Partial<ChecklistItem>)
-      : null;
+    const revert = revertPatch<ChecklistItem>(before, patch);
     patchLocal(id, patch); // 낙관적 반영
     if (!canPersist) return; // seed 모드: 로컬만
     setSaving(id);
@@ -84,11 +81,7 @@ export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
     } catch {
       // 실패 시 원위치에 복원(다른 편집 보존)
       if (removed) {
-        setList((p) => {
-          const next = [...p];
-          next.splice(Math.min(idx, next.length), 0, removed);
-          return next;
-        });
+        setList((p) => insertAt(p, idx, removed));
       }
       notify("삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     }
