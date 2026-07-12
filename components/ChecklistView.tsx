@@ -6,6 +6,10 @@ import { createClient, SUPABASE_ENABLED } from "@/lib/supabase/client";
 import StarRating from "./StarRating";
 import AutoTextarea from "./AutoTextarea";
 import Footer from "./Footer";
+import Hero, { HeroChip } from "./Hero";
+
+const CHECKLIST_HERO =
+  "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=2000&q=70";
 
 export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
   const [list, setList] = useState<ChecklistItem[]>(items);
@@ -64,27 +68,24 @@ export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <main className="flex-grow max-w-container-max mx-auto px-margin-desktop py-12 grid grid-cols-12 gap-gutter w-full">
-        {/* 헤더 */}
-        <div className="col-span-12 mb-4 border-b border-outline-variant pb-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-            <div>
-              <span className="text-label-md font-label-md text-secondary uppercase tracking-widest mb-2 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px]">lock</span>
-                관리자 전용 · 업체 비공개
-              </span>
-              <h1 className="text-display-lg font-display-lg text-primary">
-                업체 평가 체크리스트
-              </h1>
-              <p className="text-body-md text-secondary mt-3">
-                미팅 중 체크·별점·메모를 남기세요. 이 페이지는 업체에게 노출되지 않습니다.
-              </p>
-            </div>
-          </div>
-        </div>
-
+      <Hero
+        image={CHECKLIST_HERO}
+        icon="lock"
+        eyebrow="관리자 전용 · 업체 비공개"
+        title="업체 평가 체크리스트"
+        subtitle="미팅 중 체크·별점·메모를 남기세요. 이 페이지는 업체에게 노출되지 않습니다."
+        meta={
+          <>
+            <HeroChip icon="checklist">{total}개 항목</HeroChip>
+            <HeroChip icon="task_alt">
+              {checked}개 완료 · {pct}%
+            </HeroChip>
+          </>
+        }
+      />
+      <main className="flex-grow max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-10 md:py-12 grid grid-cols-12 gap-gutter w-full">
         {/* 체크리스트 본문 */}
-        <div className="col-span-12 lg:col-span-8 space-y-4">
+        <div className="rise col-span-12 lg:col-span-8 space-y-4">
           <h2 className="text-headline-md font-headline-md text-primary mb-2 flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">fact_check</span>
             평가 항목
@@ -92,7 +93,7 @@ export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
           {list.map((item, idx) => (
             <div
               key={item.id}
-              className="bg-surface-container-lowest p-6 rounded-xl shadow-soft border border-transparent hover:border-outline-variant transition-all"
+              className="lift bg-surface-container-lowest p-6 rounded-xl shadow-soft"
             >
               <div className="flex items-start gap-4">
                 <div className="pt-1">
@@ -136,7 +137,7 @@ export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
                     defaultValue={item.note ?? ""}
                     onBlur={(e) => persist(item.id, { note: e.target.value })}
                     placeholder="미팅 메모..."
-                    className="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none min-h-[80px]"
+                    className="field w-full min-h-[80px]"
                   />
                   {saving === item.id && (
                     <p className="text-caption text-secondary mt-1">저장 중…</p>
@@ -155,7 +156,7 @@ export default function ChecklistView({ items }: { items: ChecklistItem[] }) {
         </div>
 
         {/* 요약 사이드바 */}
-        <div className="col-span-12 lg:col-span-4 space-y-gutter">
+        <div className="rise col-span-12 lg:col-span-4 space-y-gutter">
           <div className="bg-surface-container-lowest p-8 rounded-xl shadow-soft border-t-4 border-primary sticky top-8">
             <h3 className="text-headline-md font-headline-md text-primary mb-6">
               종합 평가

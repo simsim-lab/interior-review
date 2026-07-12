@@ -22,7 +22,8 @@ export default function AppShell({
   adminEmail: string | null;
   children: React.ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(false); // 데스크탑 접기
+  const [mobileOpen, setMobileOpen] = useState(false); // 모바일 드로어
   const pathname = usePathname();
   const router = useRouter();
 
@@ -36,27 +37,66 @@ export default function AppShell({
     router.refresh();
   }
 
+  const BrandMark = (
+    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-on-primary/10 ring-1 ring-on-primary/15">
+      <span className="material-symbols-outlined text-[20px] text-on-primary">
+        cottage
+      </span>
+    </span>
+  );
+
   return (
     <div className="flex min-h-screen bg-surface text-on-background">
-      {/* ─── 사이드바 ─── */}
+      {/* ─── 모바일 상단바 ─── */}
+      <header className="fixed inset-x-0 top-0 z-40 flex items-center gap-3 bg-[#57462f] px-4 py-3 text-on-primary md:hidden">
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="rounded-full p-1.5 text-on-primary/80 transition-colors hover:bg-on-primary/10"
+          aria-label="메뉴 열기"
+        >
+          <span className="material-symbols-outlined">menu</span>
+        </button>
+        {BrandMark}
+        <span className="font-headline-md text-lg font-medium tracking-tight">
+          우리집
+        </span>
+      </header>
+
+      {/* ─── 모바일 오버레이 ─── */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden
+        />
+      )}
+
+      {/* ─── 사이드바 (딥 파인) ─── */}
       <aside
-        className={`${
-          collapsed ? "w-20" : "w-[280px]"
-        } bg-surface border-r border-outline-variant h-screen fixed top-0 left-0 flex flex-col justify-between py-8 px-4 z-50 overflow-hidden transition-[width] duration-300`}
+        className={`fixed top-0 left-0 z-50 flex h-screen w-[280px] flex-col justify-between overflow-hidden bg-[#57462f] px-4 py-8 text-on-primary transition-transform duration-300 md:transition-[width,transform] ${
+          collapsed ? "md:w-20" : "md:w-[280px]"
+        } ${mobileOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >
         <div className="min-w-0">
           <div
-            className={`flex items-center mb-12 ${
-              collapsed ? "justify-center" : "justify-between px-2"
+            className={`mb-12 flex items-center ${
+              collapsed ? "md:justify-center" : "justify-between px-1"
             }`}
           >
-            {!collapsed && (
-              <span className="text-headline-lg font-headline-lg tracking-tighter text-primary whitespace-nowrap">
-                우리집
+            {(!collapsed || mobileOpen) && (
+              <span className="flex min-w-0 items-center gap-2.5 md:flex">
+                {BrandMark}
+                <span className="whitespace-nowrap font-headline-lg text-2xl font-medium tracking-tight text-on-primary">
+                  우리집
+                </span>
               </span>
             )}
+            {collapsed && !mobileOpen && (
+              <span className="hidden md:block">{BrandMark}</span>
+            )}
+            {/* 데스크탑: 접기 토글 */}
             <button
-              className="text-secondary hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-container-low shrink-0"
+              className="hidden shrink-0 rounded-full p-2 text-on-primary/70 transition-colors hover:bg-on-primary/10 hover:text-on-primary md:block"
               onClick={() => setCollapsed((c) => !c)}
               title="사이드바 토글"
             >
@@ -64,9 +104,23 @@ export default function AppShell({
                 {collapsed ? "menu" : "menu_open"}
               </span>
             </button>
+            {/* 모바일: 닫기 */}
+            <button
+              className="shrink-0 rounded-full p-2 text-on-primary/70 transition-colors hover:bg-on-primary/10 md:hidden"
+              onClick={() => setMobileOpen(false)}
+              aria-label="메뉴 닫기"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
           </div>
 
-          <nav className="flex flex-col gap-2">
+          {(!collapsed || mobileOpen) && (
+            <p className="mb-4 px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-on-primary/45">
+              리모델링 보드
+            </p>
+          )}
+
+          <nav className="flex flex-col gap-1.5">
             {items.map((item) => {
               const active =
                 pathname === item.href || pathname.startsWith(item.href + "/");
@@ -75,20 +129,33 @@ export default function AppShell({
                   key={item.href}
                   href={item.href}
                   title={item.label}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-label-md font-label-md transition-colors duration-200 ${
-                    collapsed ? "justify-center px-0" : ""
+                  onClick={() => setMobileOpen(false)}
+                  className={`group relative flex items-center gap-3 rounded-xl px-4 py-3 text-label-md font-label-md transition-all duration-200 ${
+                    collapsed && !mobileOpen ? "md:justify-center md:px-0" : ""
                   } ${
                     active
-                      ? "bg-primary-container/10 text-primary font-bold"
-                      : "text-secondary hover:bg-surface-container-low hover:text-primary"
+                      ? "bg-on-primary/12 text-on-primary"
+                      : "text-on-primary/65 hover:bg-on-primary/8 hover:text-on-primary"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[20px]">
+                  {active && (!collapsed || mobileOpen) && (
+                    <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-[var(--ochre)]" />
+                  )}
+                  <span
+                    className="material-symbols-outlined text-[20px]"
+                    style={
+                      active ? { fontVariationSettings: "'FILL' 1" } : undefined
+                    }
+                  >
                     {item.icon}
                   </span>
-                  {!collapsed && (
-                    <span className="whitespace-nowrap">{item.label}</span>
-                  )}
+                  <span
+                    className={`whitespace-nowrap ${
+                      collapsed && !mobileOpen ? "md:hidden" : ""
+                    }`}
+                  >
+                    {item.label}
+                  </span>
                 </Link>
               );
             })}
@@ -97,26 +164,24 @@ export default function AppShell({
 
         {/* 하단: 로그인 상태 */}
         <div
-          className={`border-t border-outline-variant pt-6 flex items-center gap-3 ${
-            collapsed ? "justify-center" : "justify-between px-2"
+          className={`flex items-center gap-3 border-t border-on-primary/12 pt-6 ${
+            collapsed && !mobileOpen ? "md:justify-center md:px-0" : "justify-between px-2"
           }`}
         >
           {isAdmin ? (
             <>
-              {!collapsed && (
-                <div className="min-w-0">
-                  <p className="text-caption text-secondary truncate">
-                    {adminEmail ?? "관리자"}
-                  </p>
-                  <button
-                    onClick={logout}
-                    className="text-label-md text-primary hover:underline"
-                  >
-                    로그아웃
-                  </button>
-                </div>
-              )}
-              <span className="material-symbols-outlined text-primary shrink-0">
+              <div className={`min-w-0 ${collapsed && !mobileOpen ? "md:hidden" : ""}`}>
+                <p className="truncate text-caption text-on-primary/60">
+                  {adminEmail ?? "관리자"}
+                </p>
+                <button
+                  onClick={logout}
+                  className="text-label-md text-on-primary hover:underline"
+                >
+                  로그아웃
+                </button>
+              </div>
+              <span className="material-symbols-outlined shrink-0 text-on-primary/80">
                 admin_panel_settings
               </span>
             </>
@@ -124,12 +189,13 @@ export default function AppShell({
             <Link
               href="/login"
               title="관리자 로그인"
-              className={`flex items-center gap-2 text-secondary hover:text-primary transition-colors text-label-md ${
-                collapsed ? "justify-center" : ""
-              }`}
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 text-label-md text-on-primary/65 transition-colors hover:text-on-primary"
             >
               <span className="material-symbols-outlined text-[20px]">login</span>
-              {!collapsed && <span>관리자 로그인</span>}
+              <span className={collapsed && !mobileOpen ? "md:hidden" : ""}>
+                관리자 로그인
+              </span>
             </Link>
           )}
         </div>
@@ -137,8 +203,8 @@ export default function AppShell({
 
       {/* ─── 메인 ─── */}
       <div
-        className={`flex-1 flex flex-col min-h-screen transition-[margin] duration-300 ${
-          collapsed ? "ml-20" : "ml-[280px]"
+        className={`flex min-h-screen flex-1 flex-col pt-14 transition-[margin] duration-300 md:pt-0 ${
+          collapsed ? "md:ml-20" : "md:ml-[280px]"
         }`}
       >
         {children}

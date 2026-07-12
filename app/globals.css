@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..600,0..100,0..1&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap");
 
 @tailwind base;
@@ -18,16 +19,29 @@
   direction: ltr;
 }
 
-/* ─── AtelierSync 목업의 <style> 블록을 그대로 이식 ─────────────────────── */
+/* ─── Warm Architectural Lookbook — 베이스 ──────────────────────────────── */
 :root {
   color-scheme: light;
+  --cream: #f6f1e6;
+  --ink: #2a2016;
+  --wood: #4a3a29;
+  --ochre: #b07d34;
+  --shadow-lift: 0 20px 44px -16px rgba(60, 44, 24, 0.3);
 }
 
 body {
-  background-color: #fcf9f5;
-  color: #1c1c1a;
+  background-color: var(--cream);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* 크림 위 아주 옅은 우드 온기 그러데이션 */
+  background-image: radial-gradient(
+    1200px 600px at 85% -10%,
+    rgba(176, 125, 52, 0.07),
+    transparent 60%
+  );
+  background-attachment: fixed;
 }
 
 .material-symbols-outlined {
@@ -36,38 +50,222 @@ body {
 
 .rating-star:hover,
 .rating-star.active {
-  color: #041920;
+  color: var(--ochre);
   font-variation-settings: "FILL" 1;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #c2c7ca;
+  background: #cbbfa8;
   border-radius: 10px;
 }
 
 .shadow-soft {
-  box-shadow: 0 4px 20px rgba(4, 25, 32, 0.05);
+  box-shadow: 0 6px 24px -10px rgba(45, 33, 16, 0.16);
 }
 
-/* 활성 탭 밑줄 */
+/* 활성 탭 밑줄 — 오커 액센트, 부드럽게 자라남 */
 .active-tab-line {
   position: relative;
 }
 .active-tab-line::after {
   content: "";
   position: absolute;
-  bottom: -2px;
+  bottom: -1px;
   left: 0;
   width: 100%;
   height: 2px;
-  background-color: #041920;
+  background-color: var(--ochre);
+  border-radius: 2px;
+  transform-origin: left center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .active-tab-line::after {
+    animation: underline-grow 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes underline-grow {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+}
+
+/* ─── 모션 레이어 — reduced-motion 존중 ─────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .rise {
+    animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes hero-in {
+    from {
+      opacity: 0;
+      transform: translateY(22px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .hero-in {
+    animation: hero-in 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+/* 카드 호버 리프트 */
+.lift {
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lift:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lift);
+  }
+}
+
+/* ─── 통일 입력 필드 (MUI 아웃라인 스타일 — 덜 둥글게) ───────────────────── */
+.field {
+  background-color: #f1e9d9; /* surface-container-low */
+  border: 1px solid #ddd0ba; /* outline-variant */
+  border-radius: 5px;
+  padding: 0.55rem 0.7rem;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+.field::placeholder {
+  color: #a2977f;
+}
+.field:hover {
+  border-color: #c3b48f;
+}
+.field:focus,
+.field:focus-visible {
+  outline: none;
+  background-color: #fefcf7;
+  border-color: var(--wood);
+  box-shadow: 0 0 0 3px rgba(74, 58, 41, 0.16);
+}
+.field:disabled {
+  opacity: 0.5;
+}
+
+/* 표시용 분류 칩 — 단일 톤·스냅 핏·중앙 정렬 (MUI Chip 급) */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 0.78rem;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: #6e4a17; /* on-tertiary-container */
+  background-color: #efdcba;
+}
+
+/* 편집용 분류 칩 — 표시 칩과 동일 룩, 중앙 정렬 입력 */
+.chip-input {
+  height: 30px;
+  padding: 0 0.6rem;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-align: center;
+  color: #6e4a17;
+  background-color: #efdcba;
+  border: 1px solid transparent;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+.chip-input::placeholder {
+  color: #b39463;
+  font-weight: 500;
+}
+.chip-input:hover {
+  background-color: #e8d3a8;
+}
+.chip-input:focus {
+  outline: none;
+  background-color: #fffdf8;
+  border-color: var(--ochre);
+  box-shadow: 0 0 0 2px rgba(176, 125, 52, 0.22);
+}
+
+/* 표 안 인라인 편집 셀 — 평소엔 일반 텍스트, 포커스 시에만 필드 */
+.cell-edit {
+  width: 100%;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 0.375rem 0.5rem;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+.cell-edit::placeholder {
+  color: #b0a488;
+}
+.cell-edit:hover {
+  border-color: #e3d8c4;
+}
+.cell-edit:focus,
+.cell-edit:focus-visible {
+  outline: none;
+  background-color: #fdfbf6;
+  border-color: var(--wood);
+  box-shadow: 0 0 0 3px rgba(74, 58, 41, 0.14);
+}
+
+/* 분류 필터 칩 */
+.fchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #ddd0ba;
+  color: #574b3a;
+  background-color: transparent;
+  transition: all 0.15s ease;
+}
+.fchip:hover {
+  border-color: var(--wood);
+  color: var(--wood);
+}
+.fchip[data-active="true"] {
+  background-color: var(--wood);
+  border-color: var(--wood);
+  color: #f7f1e6;
 }
 
 /* ─── production 보호 layer (hakgun-viewer 패턴) ────────────────────────── */

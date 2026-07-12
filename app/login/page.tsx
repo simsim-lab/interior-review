@@ -36,17 +36,30 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md bg-surface-container-lowest rounded-xl shadow-soft border-t-4 border-primary p-8">
-        <div className="flex items-center gap-2 text-secondary text-label-md font-label-md uppercase tracking-widest mb-2">
-          <span className="material-symbols-outlined text-[18px]">
-            admin_panel_settings
+    <div
+      className="relative flex min-h-screen items-center justify-center px-6 py-12"
+      style={{
+        backgroundImage: `
+          linear-gradient(rgba(246,241,230,0.84), rgba(246,241,230,0.93)),
+          url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=2000&q=70')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <div className="hero-in w-full max-w-md rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-8 shadow-lift">
+        <div className="mb-6 flex items-center gap-3">
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary text-on-primary">
+            <span className="material-symbols-outlined text-[22px]">lock</span>
           </span>
-          관리자 로그인
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary">
+              관리자 로그인
+            </p>
+            <h1 className="font-headline-md text-2xl font-medium text-primary">
+              체크리스트 접근
+            </h1>
+          </div>
         </div>
-        <h1 className="text-headline-lg font-headline-lg text-primary mb-6">
-          체크리스트 접근
-        </h1>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
@@ -58,7 +71,7 @@ function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
-              className="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+              className="field w-full"
               placeholder="you@example.com"
             />
           </div>
@@ -71,7 +84,7 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              className="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+              className="field w-full"
               placeholder="••••••••"
             />
           </div>
