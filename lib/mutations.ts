@@ -114,7 +114,10 @@ export async function uploadPhoto(
     };
   }
   const client = sb();
-  const ext = file.name.split(".").pop() || "jpg";
+  // 확장자만 안전 문자로 정제(경로 세그먼트 주입 방지).
+  const ext =
+    (file.name.split(".").pop() || "").replace(/[^a-z0-9]/gi, "").toLowerCase() ||
+    "jpg";
   const path = `${spaceId}/${rowId}/${newId()}.${ext}`;
   const up = await client.storage.from("photos").upload(path, file, {
     cacheControl: "3600",

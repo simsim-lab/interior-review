@@ -20,8 +20,10 @@ export default function PhotoCell({
   onUpload: (file: File) => Promise<void>;
   onRemove: (photoId: string) => Promise<void>;
 }) {
-  const [open, setOpen] = useState<number | null>(null);
+  // 라이트박스는 배열 위치가 아니라 사진 id 로 추적(삭제/재정렬 시 어긋남 방지).
+  const [openId, setOpenId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [removing, setRemoving] = useState<Set<string>>(new Set());
   const ref = useRef<HTMLInputElement>(null);
 
   const pick = async (file: File) => {
@@ -34,18 +36,35 @@ export default function PhotoCell({
     }
   };
 
+  // 삭제 연타 방지 + 진행 중 표시.
+  const remove = async (id: string) => {
+    if (removing.has(id)) return;
+    setRemoving((s) => new Set(s).add(id));
+    try {
+      await onRemove(id);
+    } finally {
+      setRemoving((s) => {
+        const n = new Set(s);
+        n.delete(id);
+        return n;
+      });
+    }
+  };
+
+  const openIdx = openId === null ? -1 : photos.findIndex((p) => p.id === openId);
+
   if (!isAdmin && photos.length === 0) {
     return <span className="text-caption text-secondary">—</span>;
   }
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {photos.map((p, idx) => (
+      <div className="flex max-w-[168px] flex-wrap items-center gap-1.5">
+        {photos.map((p) => (
           <span key={p.id} className="group relative">
             <button
               type="button"
-              onClick={() => setOpen(idx)}
+              onClick={() => setOpenId(p.id)}
               title="크게 보기"
               aria-label={p.caption ? `사진 크게 보기: ${p.caption}` : "사진 크게 보기"}
               className="block h-12 w-12 overflow-hidden rounded-md border border-outline-variant"
@@ -64,10 +83,11 @@ export default function PhotoCell({
             {isAdmin && (
               <button
                 type="button"
-                onClick={() => onRemove(p.id)}
+                onClick={() => remove(p.id)}
+                disabled={removing.has(p.id)}
                 title="사진 삭제"
                 aria-label="사진 삭제"
-                className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 place-items-center rounded-full bg-inverse-surface text-inverse-on-surface group-hover:grid group-focus-within:grid"
+                className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 place-items-center rounded-full bg-inverse-surface text-inverse-on-surface group-hover:grid group-focus-within:grid disabled:opacity-50"
               >
                 <span aria-hidden="true" className="material-symbols-outlined text-[13px]">
                   close
@@ -110,8 +130,12 @@ export default function PhotoCell({
         />
       )}
 
-      {open !== null && photos[open] && (
-        <Lightbox photos={photos} index={open} onClose={() => setOpen(null)} />
+      {openIdx >= 0 && (
+        <Lightbox
+          photos={photos}
+          index={openIdx}
+          onClose={() => setOpenId(null)}
+        />
       )}
     </>
   );

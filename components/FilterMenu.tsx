@@ -22,6 +22,7 @@ export default function FilterMenu({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
   const active = selected.length > 0;
 
@@ -37,6 +38,8 @@ export default function FilterMenu({
     };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
+    // 열릴 때 첫 체크박스로 포커스 이동(팝오버 관례).
+    panelRef.current?.querySelector<HTMLInputElement>('input[type="checkbox"]')?.focus();
     return () => {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
@@ -80,7 +83,13 @@ export default function FilterMenu({
       </button>
 
       {open && (
-        <div id={panelId} role="group" aria-label={`${label} 필터`} className="filter-panel">
+        <div
+          ref={panelRef}
+          id={panelId}
+          role="group"
+          aria-label={`${label} 필터`}
+          className="filter-panel"
+        >
           <div className="flex items-center justify-between px-3 pb-2 pt-1">
             <span className="text-caption font-semibold text-secondary">
               {label} 필터

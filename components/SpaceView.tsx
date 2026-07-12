@@ -244,9 +244,10 @@ export default function SpaceView({
   function patchItem(spaceId: string, id: string, patch: Record<string, unknown>) {
     // 실패 시 되돌릴 값: 해당 항목의 "패치된 필드만" 캡처(다른 편집 보존).
     const bundle = data.find((b) => b.space.id === spaceId);
-    const before = rowsOf(bundle ?? ({} as SpaceBundle))?.find(
-      (r) => r.id === id
-    ) as Record<string, unknown> | undefined;
+    if (!bundle) return;
+    const before = rowsOf(bundle).find((r) => r.id === id) as
+      | Record<string, unknown>
+      | undefined;
     const revert = revertPatch(before, patch);
 
     const apply = (p: Record<string, unknown>) =>
@@ -448,16 +449,20 @@ export default function SpaceView({
                       />
                     </th>
                   )}
-                  <th className="px-6 py-3 text-label-md font-label-md text-secondary uppercase tracking-wider">
+                  <th className="px-6 py-3 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">
                     {isReq ? "요구사항" : "현재 상태"}
                   </th>
-                  <th className="px-6 py-3 text-label-md font-label-md text-secondary uppercase tracking-wider">
+                  <th className="px-6 py-3 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">
                     메모
                   </th>
-                  <th className="px-6 py-3 text-label-md font-label-md text-secondary uppercase tracking-wider">
+                  <th className="px-6 py-3 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">
                     사진
                   </th>
-                  {isAdmin && <th className="w-10" />}
+                  {isAdmin && (
+                    <th className="w-10">
+                      <span className="sr-only">삭제</span>
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/30">

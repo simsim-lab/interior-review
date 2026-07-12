@@ -265,7 +265,7 @@ body {
   gap: 0.3rem;
   padding: 0.28rem 0.55rem;
   border-radius: 8px;
-  color: #6b5f4c; /* secondary */
+  color: #574b3a; /* on-surface-variant — 헤더 배경 대비 AA */
   border: 1px solid transparent;
   background-color: transparent;
   white-space: nowrap; /* "공간"·"분류" 라벨이 좁은 열에서 줄바꿈되지 않게 */
