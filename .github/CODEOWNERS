@@ -1,0 +1,13 @@
+# review 의무자 지정. path pattern 매칭 PR 은 자동 review request.
+# branch protection 의 "Require review from Code Owners" 설정 시 enforce.
+
+# Default — repo 전체
+* @simsimhugh
+
+# 인증/보안 경계 — Supabase 클라이언트 + proxy(미들웨어) + 인증 로직
+/lib/supabase/    @simsimhugh
+/lib/auth.ts      @simsimhugh
+/proxy.ts         @simsimhugh
+
+# CI / enforcement layer 자체 변경 추적
+/.github/         @simsimhugh

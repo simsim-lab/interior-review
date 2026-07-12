@@ -1,0 +1,48 @@
+# Dependabot Version Updates — 정기 routine dependency bump PR.
+# Alerts / Security Updates 는 Settings UI toggle (config file 없음).
+
+version: 2
+
+updates:
+  # npm ecosystem — package.json + transitive
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      # minor + patch 묶음 PR — review 부담 ↓. major(next/react 등) 는 별 PR (breaking change 검토).
+      npm-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # GitHub Actions ecosystem — .github/workflows/*.yml 의 actions/* 갱신
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:30"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    groups:
+      actions-minor-patch:
+        update-types:
+          - minor
+          - patch
