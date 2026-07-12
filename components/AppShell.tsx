@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient, SUPABASE_ENABLED } from "@/lib/supabase/client";
@@ -26,23 +26,27 @@ export default function AppShell({
 }) {
   const [collapsed, setCollapsed] = useState(false); // 데스크탑 접기
   const [mobileOpen, setMobileOpen] = useState(false); // 모바일 드로어
-  const [loggingOut, setLoggingOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
+  // 로그아웃 진행 상태를 useTransition 으로 관리한다(수동 boolean state 대신).
+  // AppShell 은 레이아웃 소속 클라이언트 컴포넌트라 페이지 이동·router.refresh() 로도
+  // 언마운트되지 않는다. 예전엔 loggingOut boolean 을 성공 후 되돌리지 않아, 재로그인 시
+  // stale true 로 "로그아웃 중…" 스피너가 되살아났다. isPending 은 signOut+이동이 끝나면
+  // React 가 자동 해제하므로 stale 로 남을 상태 자체가 없다.
+  const [loggingOut, startLogout] = useTransition();
+
   const items = NAV.filter((n) => !n.adminOnly || isAdmin);
 
-  async function logout() {
-    setLoggingOut(true); // 리다이렉트까지 스피너 유지 (성공 시 컴포넌트가 갱신됨)
-    try {
+  function logout() {
+    startLogout(async () => {
       if (SUPABASE_ENABLED) {
-        await createClient().auth.signOut();
+        const { error } = await createClient().auth.signOut();
+        if (error) return; // 실패 시 이동 없이 종료 → isPending 자동 해제로 버튼 복구
       }
       router.push("/");
       router.refresh();
-    } catch {
-      setLoggingOut(false); // 실패 시 버튼 복구
-    }
+    });
   }
 
   const BrandMark = (
