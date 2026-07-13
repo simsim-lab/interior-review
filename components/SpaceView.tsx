@@ -196,13 +196,11 @@ export default function SpaceView({
   }
 
   // ─── 항목 ───
-  // 모달 "확인" 시 호출 — 입력값과 함께 새 행을 저장(빈 행 선삽입 없이 즉시 저장).
+  // 모달 "확인" 시 호출 — 입력값(공간 포함)과 함께 새 행을 저장(빈 행 선삽입 없이 즉시 저장).
   async function addRow(values: RowEditValues) {
-    // 추가 대상 공간: 개별 탭이면 그 공간, 전체면 현재 보이는 마지막 공간(표 맨 아래).
-    const target = isAll
-      ? spaceScoped[spaceScoped.length - 1] ??
-        visibleBundles[visibleBundles.length - 1]
-      : visibleBundles[0];
+    // 대상 공간은 모달에서 선택. (혹시 모를 무효값은 첫 공간으로 폴백.)
+    const target =
+      data.find((b) => b.space.id === values.spaceId) ?? data[0];
     if (!target) return;
     const spaceId = target.space.id;
     const notes = values.notes || null;
@@ -252,13 +250,18 @@ export default function SpaceView({
       await addRow(values);
       return;
     }
-    // 편집: 바뀐 필드만 patch(낙관적 저장). category 는 요구사항에만 존재.
+    // 편집: 내용 patch(낙관적 저장). category 는 요구사항에만 존재.
     const patch: Record<string, unknown> = {
       content: values.content,
       notes: values.notes || null,
     };
     if (isReq) patch.category = values.category;
+    // 먼저 내용 patch → (공간이 바뀌었으면) 이동. 순서 중요: 이동 후 patch 하면
+    // 옛 공간 번들 기준 갱신이라 새 위치의 행에 반영되지 않는다.
     patchItem(editing.spaceId, editing.row.id, patch);
+    if (values.spaceId !== editing.spaceId) {
+      moveRowSpace(editing.spaceId, editing.row.id, values.spaceId);
+    }
   }
 
   function patchItem(spaceId: string, id: string, patch: Record<string, unknown>) {
@@ -454,11 +457,20 @@ export default function SpaceView({
             <div className="flex shrink-0 items-center gap-2 sm:pb-3">
               <button
                 onClick={() => setShowManager(true)}
-                className="flex items-center gap-1 bg-primary text-on-primary px-4 py-2 rounded-lg text-label-md font-label-md hover:opacity-90 active:scale-95 transition-all"
+                className="flex items-center gap-1 border border-outline-variant text-primary px-4 py-2 rounded-lg text-label-md font-label-md hover:bg-surface-container-low active:scale-95 transition-all"
               >
                 <span className="material-symbols-outlined text-[18px]">edit_location_alt</span>
                 공간 편집
               </button>
+              {data.length > 0 && (
+                <button
+                  onClick={() => setEditing({ type: "add" })}
+                  className="flex items-center gap-1 bg-primary text-on-primary px-4 py-2 rounded-lg text-label-md font-label-md hover:opacity-90 active:scale-95 transition-all"
+                >
+                  <span className="material-symbols-outlined text-[18px]">add</span>
+                  {cfg.addLabel}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -511,30 +523,11 @@ export default function SpaceView({
                     key={r.id}
                     className="align-top hover:bg-surface-container/50 transition-colors"
                   >
-                    {showSpaceCol &&
-                      (isAdmin ? (
-                        <td className="px-6 py-5 align-top">
-                          <select
-                            value={b.space.id}
-                            onChange={(e) =>
-                              moveRowSpace(b.space.id, r.id, e.target.value)
-                            }
-                            aria-label="공간"
-                            title={b.space.name}
-                            className="space-select"
-                          >
-                            {data.map((sb) => (
-                              <option key={sb.space.id} value={sb.space.id}>
-                                {sb.space.name}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                      ) : (
-                        <td className="px-6 py-5 align-top">
-                          <span className="chip">{b.space.name}</span>
-                        </td>
-                      ))}
+                    {showSpaceCol && (
+                      <td className="px-6 py-5 align-top">
+                        <span className="chip">{b.space.name}</span>
+                      </td>
+                    )}
 
                     {isReq && (
                       <td className="px-6 py-5 align-top">
@@ -606,7 +599,7 @@ export default function SpaceView({
                         : isAdmin
                         ? data.length === 0
                           ? "‘공간 편집’에서 공간을 먼저 추가하세요."
-                          : "아래 버튼으로 항목을 추가하세요."
+                          : "위 ‘추가’ 버튼으로 항목을 추가하세요."
                         : isReq
                         ? "등록된 요구사항이 없습니다."
                         : "등록된 현재상태가 없습니다."}
@@ -616,16 +609,6 @@ export default function SpaceView({
               </tbody>
             </table>
           </div>
-
-          {isAdmin && data.length > 0 && (
-            <button
-              onClick={() => setEditing({ type: "add" })}
-              className="w-full flex items-center justify-center gap-2 py-4 text-label-md font-label-md text-primary border-t border-outline-variant hover:bg-surface-container-low transition-colors"
-            >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              {cfg.addLabel}
-            </button>
-          )}
         </div>
       </main>
       <Footer />
@@ -645,14 +628,27 @@ export default function SpaceView({
           mode={editing.type}
           isReq={isReq}
           contentLabel={isReq ? "요구사항" : "현재 상태"}
+          spaces={data.map((b) => ({ id: b.space.id, name: b.space.name }))}
           initial={
             editing.type === "edit"
               ? {
+                  spaceId: editing.spaceId,
                   category: catText(editing.row),
                   content: editing.row.content,
                   notes: editing.row.notes ?? "",
                 }
-              : { category: "", content: "", notes: "" }
+              : {
+                  // 추가 기본 공간: 개별 탭이면 그 공간, "전체"면 마지막 공간.
+                  spaceId:
+                    (isAll
+                      ? data[data.length - 1]?.space.id
+                      : visibleBundles[0]?.space.id) ??
+                    data[0]?.space.id ??
+                    "",
+                  category: "",
+                  content: "",
+                  notes: "",
+                }
           }
           onConfirm={saveEdit}
           onClose={() => setEditing(null)}

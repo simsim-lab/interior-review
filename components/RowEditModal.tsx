@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Spinner from "./Spinner";
 
 export type RowEditValues = {
+  spaceId: string;
   category: string;
   content: string;
   notes: string;
@@ -21,6 +22,7 @@ export default function RowEditModal({
   mode,
   isReq,
   contentLabel,
+  spaces,
   initial,
   onConfirm,
   onClose,
@@ -28,10 +30,12 @@ export default function RowEditModal({
   mode: "add" | "edit";
   isReq: boolean;
   contentLabel: string; // "요구사항" | "현재 상태"
+  spaces: { id: string; name: string }[];
   initial: RowEditValues;
   onConfirm: (values: RowEditValues) => Promise<void>;
   onClose: () => void;
 }) {
+  const [spaceId, setSpaceId] = useState(initial.spaceId);
   const [category, setCategory] = useState(initial.category);
   const [content, setContent] = useState(initial.content);
   const [notes, setNotes] = useState(initial.notes);
@@ -39,6 +43,7 @@ export default function RowEditModal({
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const dirty =
+    spaceId !== initial.spaceId ||
     category !== initial.category ||
     content !== initial.content ||
     notes !== initial.notes;
@@ -73,6 +78,7 @@ export default function RowEditModal({
     setSaving(true);
     try {
       await onConfirm({
+        spaceId,
         category: category.trim(),
         content: content.trim(),
         notes: notes.trim(),
@@ -148,6 +154,23 @@ export default function RowEditModal({
 
         {/* 본문(스크롤) */}
         <div className="custom-scrollbar flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-label-md font-label-md text-on-surface-variant">
+              공간
+            </span>
+            <select
+              value={spaceId}
+              onChange={(e) => setSpaceId(e.target.value)}
+              className="field w-full"
+            >
+              {spaces.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
           {isReq && (
             <label className="flex flex-col gap-1.5">
               <span className="text-label-md font-label-md text-on-surface-variant">
