@@ -7,12 +7,11 @@ import type {
   Requirement,
   CurrentState,
 } from "@/lib/types";
-import AutoTextarea from "./AutoTextarea";
 import Footer from "./Footer";
 import Hero, { HeroChip } from "./Hero";
-import Spinner from "./Spinner";
 import FilterMenu from "./FilterMenu";
 import PhotoCell from "./PhotoCell";
+import RowEditModal, { type RowEditValues } from "./RowEditModal";
 import SpaceManager from "./SpaceManager";
 import {
   requirementCategories,
@@ -83,8 +82,13 @@ export default function SpaceView({
   const isReq = mode === "requirement";
   const [data, setData] = useState<SpaceBundle[]>(bundles);
   const [active, setActive] = useState<string>("all");
-  const [addingItem, setAddingItem] = useState(false);
   const [showManager, setShowManager] = useState(false);
+  // 행 편집 모달: 추가(빈 값) 또는 특정 행 편집.
+  const [editing, setEditing] = useState<
+    | { type: "add" }
+    | { type: "edit"; spaceId: string; row: Requirement | CurrentState }
+    | null
+  >(null);
   const [catFilter, setCatFilter] = useState<string[]>([]);
   const [spaceFilter, setSpaceFilter] = useState<string[]>([]);
   const [flash, setFlash] = useState<{ msg: string } | null>(null);
@@ -192,7 +196,8 @@ export default function SpaceView({
   }
 
   // ─── 항목 ───
-  async function addRow() {
+  // 모달 "확인" 시 호출 — 입력값과 함께 새 행을 저장(빈 행 선삽입 없이 즉시 저장).
+  async function addRow(values: RowEditValues) {
     // 추가 대상 공간: 개별 탭이면 그 공간, 전체면 현재 보이는 마지막 공간(표 맨 아래).
     const target = isAll
       ? spaceScoped[spaceScoped.length - 1] ??
@@ -200,16 +205,14 @@ export default function SpaceView({
       : visibleBundles[0];
     if (!target) return;
     const spaceId = target.space.id;
-    // 새 행이 활성 분류 필터 밖(빈 분류)이라 안 보이는 혼란 방지 → 분류 필터 해제.
-    if (isReq) setCatFilter([]);
-    setAddingItem(true);
+    const notes = values.notes || null;
     try {
       if (isReq) {
         const row = await insertRequirement({
           space_id: spaceId,
-          category: "",
-          content: "",
-          notes: null,
+          category: values.category,
+          content: values.content,
+          notes,
           sort: nextSort(target.requirements),
         });
         setData((d) =>
@@ -222,8 +225,8 @@ export default function SpaceView({
       } else {
         const row = await insertCurrentState({
           space_id: spaceId,
-          content: "",
-          notes: null,
+          content: values.content,
+          notes,
           sort: nextSort(target.currentStates),
         });
         setData((d) =>
@@ -234,11 +237,28 @@ export default function SpaceView({
           )
         );
       }
+      // 새 행이 활성 분류 필터 밖이라 안 보이는 혼란 방지 → 분류 필터 해제.
+      if (isReq) setCatFilter([]);
     } catch {
       notify(SAVE_ERR);
-    } finally {
-      setAddingItem(false);
+      throw new Error("add failed"); // 모달이 열린 채로 재시도할 수 있게 전파.
     }
+  }
+
+  // 모달 "확인"의 저장 처리 — 추가/편집 공통 진입점.
+  async function saveEdit(values: RowEditValues) {
+    if (!editing) return;
+    if (editing.type === "add") {
+      await addRow(values);
+      return;
+    }
+    // 편집: 바뀐 필드만 patch(낙관적 저장). category 는 요구사항에만 존재.
+    const patch: Record<string, unknown> = {
+      content: values.content,
+      notes: values.notes || null,
+    };
+    if (isReq) patch.category = values.category;
+    patchItem(editing.spaceId, editing.row.id, patch);
   }
 
   function patchItem(spaceId: string, id: string, patch: Record<string, unknown>) {
@@ -479,8 +499,8 @@ export default function SpaceView({
                     사진
                   </th>
                   {isAdmin && (
-                    <th className="w-10">
-                      <span className="sr-only">삭제</span>
+                    <th className="w-20">
+                      <span className="sr-only">관리</span>
                     </th>
                   )}
                 </tr>
@@ -489,15 +509,11 @@ export default function SpaceView({
                 {rows.map(({ b, r }) => (
                   <tr
                     key={r.id}
-                    className={
-                      isAdmin
-                        ? "align-top"
-                        : "align-top hover:bg-surface-container/50 transition-colors"
-                    }
+                    className="align-top hover:bg-surface-container/50 transition-colors"
                   >
                     {showSpaceCol &&
                       (isAdmin ? (
-                        <td className="px-4 py-3.5">
+                        <td className="px-6 py-5 align-top">
                           <select
                             value={b.space.id}
                             onChange={(e) =>
@@ -520,65 +536,20 @@ export default function SpaceView({
                         </td>
                       ))}
 
-                    {isReq &&
-                      (isAdmin ? (
-                        <td className="px-4 py-3.5">
-                          <input
-                            defaultValue={catText(r)}
-                            onBlur={(e) =>
-                              patchItem(b.space.id, r.id, {
-                                category: e.target.value,
-                              })
-                            }
-                            placeholder="분류"
-                            className="chip-input w-24"
-                          />
-                        </td>
-                      ) : (
-                        <td className="px-6 py-5 align-top">
-                          <span className="chip">{catText(r) || "일반"}</span>
-                        </td>
-                      ))}
-
-                    {isAdmin ? (
-                      <>
-                        <td className="px-4 py-3.5">
-                          <AutoTextarea
-                            defaultValue={r.content}
-                            onBlur={(e) =>
-                              patchItem(b.space.id, r.id, {
-                                content: e.target.value,
-                              })
-                            }
-                            placeholder={isReq ? "요구사항 내용" : "현재 상태 내용"}
-                            className="cell-edit"
-                          />
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <AutoTextarea
-                            defaultValue={r.notes ?? ""}
-                            onBlur={(e) =>
-                              patchItem(b.space.id, r.id, {
-                                notes: e.target.value || null,
-                              })
-                            }
-                            placeholder="메모"
-                            className="cell-edit"
-                          />
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="px-6 py-5 align-top text-body-md text-on-surface-variant whitespace-pre-line">
-                          {r.content}
-                        </td>
-                        <td className="px-6 py-5 align-top text-body-md text-secondary whitespace-pre-line">
-                          {r.notes || "—"}
-                        </td>
-                      </>
+                    {isReq && (
+                      <td className="px-6 py-5 align-top">
+                        <span className="chip">{catText(r) || "일반"}</span>
+                      </td>
                     )}
 
-                    <td className={isAdmin ? "px-4 py-3.5" : "px-6 py-5 align-top"}>
+                    <td className="px-6 py-5 align-top text-body-md text-on-surface-variant whitespace-pre-line">
+                      {r.content}
+                    </td>
+                    <td className="px-6 py-5 align-top text-body-md text-secondary whitespace-pre-line">
+                      {r.notes || "—"}
+                    </td>
+
+                    <td className="px-6 py-5 align-top">
                       <PhotoCell
                         photos={photosFor(r.id)}
                         isAdmin={isAdmin}
@@ -588,20 +559,37 @@ export default function SpaceView({
                     </td>
 
                     {isAdmin && (
-                      <td className="px-2 py-3.5 text-center align-top">
-                        <button
-                          onClick={() => removeItem(b.space.id, r.id)}
-                          title="삭제"
-                          aria-label="항목 삭제"
-                          className="text-secondary hover:text-error"
-                        >
-                          <span
-                            aria-hidden="true"
-                            className="material-symbols-outlined text-[20px]"
+                      <td className="px-2 py-5 align-top">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() =>
+                              setEditing({ type: "edit", spaceId: b.space.id, row: r })
+                            }
+                            title="편집"
+                            aria-label="항목 편집"
+                            className="text-secondary hover:text-primary"
                           >
-                            close
-                          </span>
-                        </button>
+                            <span
+                              aria-hidden="true"
+                              className="material-symbols-outlined text-[20px]"
+                            >
+                              edit
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => removeItem(b.space.id, r.id)}
+                            title="삭제"
+                            aria-label="항목 삭제"
+                            className="text-secondary hover:text-error"
+                          >
+                            <span
+                              aria-hidden="true"
+                              className="material-symbols-outlined text-[20px]"
+                            >
+                              close
+                            </span>
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -631,16 +619,11 @@ export default function SpaceView({
 
           {isAdmin && data.length > 0 && (
             <button
-              onClick={addRow}
-              disabled={addingItem}
-              className="w-full flex items-center justify-center gap-2 py-4 text-label-md font-label-md text-primary border-t border-outline-variant hover:bg-surface-container-low transition-colors disabled:opacity-60"
+              onClick={() => setEditing({ type: "add" })}
+              className="w-full flex items-center justify-center gap-2 py-4 text-label-md font-label-md text-primary border-t border-outline-variant hover:bg-surface-container-low transition-colors"
             >
-              {addingItem ? (
-                <Spinner size={18} />
-              ) : (
-                <span className="material-symbols-outlined text-[18px]">add</span>
-              )}
-              {addingItem ? "추가 중…" : cfg.addLabel}
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              {cfg.addLabel}
             </button>
           )}
         </div>
@@ -654,6 +637,25 @@ export default function SpaceView({
           onRename={renameSpace}
           onRemove={removeSpace}
           onClose={() => setShowManager(false)}
+        />
+      )}
+
+      {editing && (
+        <RowEditModal
+          mode={editing.type}
+          isReq={isReq}
+          contentLabel={isReq ? "요구사항" : "현재 상태"}
+          initial={
+            editing.type === "edit"
+              ? {
+                  category: catText(editing.row),
+                  content: editing.row.content,
+                  notes: editing.row.notes ?? "",
+                }
+              : { category: "", content: "", notes: "" }
+          }
+          onConfirm={saveEdit}
+          onClose={() => setEditing(null)}
         />
       )}
     </div>
