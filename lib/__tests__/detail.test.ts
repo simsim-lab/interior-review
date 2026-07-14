@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { findRowDetail } from "../detail";
+import { findRowDetail, detailSpaces } from "../detail";
 import type {
   SpaceBundle,
   Requirement,
@@ -99,4 +99,29 @@ test("공간 이동으로 사진이 다른 번들에 남아도 행 FK 로 찾는
   assert.ok(d);
   assert.equal(d.space.name, "KITCHEN");
   assert.deepEqual(d.photos.map((p) => p.id), ["p1"]);
+});
+
+test("detailSpaces: 공간 목록과 공간별 다음 sort(요구사항 기준)", () => {
+  const bundles = [
+    bundle("living", [req("rq-1", "living"), req("rq-2", "living")]), // 2행 → nextSort 2
+    bundle("bath", []), // 빈 공간 → nextSort 1 (경계값)
+  ];
+  const { spaces, nextSortBySpace } = detailSpaces(bundles, "requirement");
+  assert.deepEqual(spaces, [
+    { id: "living", name: "LIVING", slug: "living" },
+    { id: "bath", name: "BATH", slug: "bath" },
+  ]);
+  assert.equal(nextSortBySpace.living, 2);
+  assert.equal(nextSortBySpace.bath, 1);
+});
+
+test("detailSpaces: current 모드는 currentStates 기준으로 sort 계산", () => {
+  const bundles = [
+    // req 는 무시되고 currentStates 로만 계산돼야 한다.
+    bundle("bath", [req("rq-1", "bath")], [cs("cs-1", "bath")]),
+    bundle("kitchen", [], []),
+  ];
+  const { nextSortBySpace } = detailSpaces(bundles, "current");
+  assert.equal(nextSortBySpace.bath, 2); // cs 1행 → 2
+  assert.equal(nextSortBySpace.kitchen, 1);
 });

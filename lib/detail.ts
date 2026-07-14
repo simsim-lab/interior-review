@@ -3,6 +3,7 @@
 // (공간 이동으로 사진이 다른 번들에 남아도 찾도록 — SpaceView.photosFor 와 동일 규칙).
 import type { SpaceBundle, Photo, Space, Requirement, CurrentState } from "./types";
 import type { ShareMode } from "./share";
+import { nextSort } from "./util";
 
 export interface RowDetail {
   id: string;
@@ -47,4 +48,24 @@ export function findRowDetail(
     };
   }
   return null;
+}
+
+/**
+ * 상세 편집(공간 이동)용 컨텍스트 — 공간 목록과 공간별 다음 sort.
+ * admin 이 상세에서 공간을 바꿔 저장할 때 대상 공간의 끝 sort 를 쓰기 위함.
+ */
+export function detailSpaces(bundles: SpaceBundle[], mode: ShareMode) {
+  const isReq = mode === "requirement";
+  const spaces = bundles.map((b) => ({
+    id: b.space.id,
+    name: b.space.name,
+    slug: b.space.slug,
+  }));
+  const nextSortBySpace: Record<string, number> = Object.fromEntries(
+    bundles.map((b) => [
+      b.space.id,
+      nextSort(isReq ? b.requirements : b.currentStates),
+    ])
+  );
+  return { spaces, nextSortBySpace };
 }
