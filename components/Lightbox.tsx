@@ -144,7 +144,7 @@ export default function Lightbox({
           width: 40px;
           height: 40px;
           border-radius: 9999px;
-          color: #fff;
+          color: #fff; /* design-token-allow: 라이트박스는 사진 위 중립 화이트 크롬(앱 팔레트 예외) */
           background: rgba(255, 255, 255, 0.1);
           transition: background 0.2s;
         }

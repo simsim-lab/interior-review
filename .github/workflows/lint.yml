@@ -32,3 +32,6 @@ jobs:
 
       - name: ESLint
         run: npm run lint
+
+      - name: Design tokens (색 하드코딩 금지)
+        run: npm run lint:tokens
