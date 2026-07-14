@@ -271,8 +271,8 @@ export default function RowEditModal({
             )}
           </div>
 
-          {/* 내용·메모 — 자유서술은 가독폭(640px) 중앙 유지: 넓은 모달에서도 한 줄이 과도하게 길어지지 않게. */}
-          <div className="flex flex-1 flex-col gap-5 sm:mx-auto sm:w-full sm:max-w-[640px]">
+          {/* 내용·메모 — 넓어진 모달 폭을 그대로 채운다(텍스트 필드도 함께 넓어지게). */}
+          <div className="flex flex-1 flex-col gap-5">
             <label className="flex flex-1 flex-col gap-1.5">
               <span className="text-label-md font-label-md text-on-surface-variant">
                 {contentLabel}
