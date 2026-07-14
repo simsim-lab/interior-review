@@ -13,7 +13,7 @@ import Footer from "./Footer";
 import Hero, { HeroChip } from "./Hero";
 import FilterMenu from "./FilterMenu";
 import PhotoCell from "./PhotoCell";
-import CopyLinkButton from "./CopyLinkButton";
+import ShareButton from "./ShareButton";
 import RowEditModal, { type RowEditValues } from "./RowEditModal";
 import SpaceManager from "./SpaceManager";
 import { rowPath, spacePath } from "@/lib/share";
@@ -424,9 +424,9 @@ export default function SpaceView({
     }
   }
 
-  // 삭제 열 포함 총 컬럼 수(빈 상태 colSpan 용).
+  // 동작 열 포함 총 컬럼 수(빈 상태 colSpan 용). 동작 열은 이제 모두에게 노출.
   const colCount =
-    (showSpaceCol ? 1 : 0) + (isReq ? 1 : 0) + 2 /*내용·메모*/ + 1 /*사진*/ + (isAdmin ? 1 : 0);
+    (showSpaceCol ? 1 : 0) + (isReq ? 1 : 0) + 2 /*내용·메모*/ + 1 /*사진*/ + 1 /*동작*/;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -503,9 +503,15 @@ export default function SpaceView({
 
           {(!isAll || isAdmin) && (
             <div className="flex shrink-0 items-center gap-2 sm:pb-3">
-              {/* 활성 공간(개별 탭)의 공유 링크 — 뷰어도 사용. "전체"에선 숨김. */}
+              {/* 활성 공간(개별 탭)의 공유 — 뷰어도 사용. "전체"에선 숨김. */}
               {!isAll && (
-                <CopyLinkButton path={spacePath(mode, active)} label="공간 링크 복사" />
+                <ShareButton
+                  path={spacePath(mode, active)}
+                  shareTitle={`${title} · ${
+                    data.find((b) => b.space.slug === active)?.space.name ?? ""
+                  }`}
+                  variant="outline"
+                />
               )}
               {isAdmin && (
                 <>
@@ -566,11 +572,9 @@ export default function SpaceView({
                   <th className="px-6 py-3 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">
                     사진
                   </th>
-                  {isAdmin && (
-                    <th className="w-20">
-                      <span className="sr-only">관리</span>
-                    </th>
-                  )}
+                  <th className="w-px">
+                    <span className="sr-only">동작</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/30">
@@ -592,19 +596,13 @@ export default function SpaceView({
                     )}
 
                     <td className="px-6 py-5 align-top">
-                      {/* 내용 클릭 = 그 행만 크게 보기(= 공유 대상 페이지). 누구나 사용. */}
+                      {/* 내용 클릭 = 상세로 이동(링크의 접근성 이름은 내용 텍스트).
+                          "크게 보기" 라벨은 행 끝 셰브론 하나만 갖는다(중복 방지). */}
                       <Link
                         href={rowPath(mode, r.id)}
-                        title="크게 보기"
-                        className="group flex items-start gap-2 text-body-md text-on-surface-variant transition-colors hover:text-primary"
+                        className="block whitespace-pre-line text-body-md text-on-surface-variant underline-offset-4 decoration-outline-variant transition-colors hover:text-primary hover:underline"
                       >
-                        <span className="whitespace-pre-line">{r.content}</span>
-                        <span
-                          aria-hidden="true"
-                          className="material-symbols-outlined mt-0.5 shrink-0 text-[16px] text-secondary/50 transition-colors group-hover:text-primary"
-                        >
-                          open_in_full
-                        </span>
+                        {r.content}
                       </Link>
                     </td>
                     <td className="px-6 py-5 align-top text-body-md text-secondary whitespace-pre-line">
@@ -620,46 +618,75 @@ export default function SpaceView({
                       />
                     </td>
 
-                    {isAdmin && (
-                      <td className="px-2 py-5 align-top">
-                        <div className="flex items-center justify-center gap-1">
-                          <CopyLinkButton
-                            path={rowPath(mode, r.id)}
-                            iconOnly
-                            label="행 링크 복사"
-                            title="공유 링크 복사"
-                          />
-                          <button
-                            onClick={() =>
-                              setEditing({ type: "edit", spaceId: b.space.id, row: r })
-                            }
-                            title="편집"
-                            aria-label="항목 편집"
-                            className="text-secondary hover:text-primary"
-                          >
+                    {/* 행 동작 — 공유(모두)·편집/삭제(admin)·열기(모두)를 그룹 구분선으로 분리. */}
+                    <td className="px-2 py-5 align-top">
+                      <div className="flex items-center justify-end gap-1">
+                        <ShareButton
+                          path={rowPath(mode, r.id)}
+                          shareTitle={`${b.space.name} · ${
+                            (r.content || "").split("\n")[0].slice(0, 40) ||
+                            (isReq ? "요구사항" : "현재상태")
+                          }`}
+                          iconOnly
+                          label="이 행 공유"
+                          title="공유"
+                        />
+                        {isAdmin && (
+                          <>
                             <span
                               aria-hidden="true"
-                              className="material-symbols-outlined text-[20px]"
+                              className="mx-0.5 h-5 w-px self-center bg-outline-variant/60"
+                            />
+                            <button
+                              onClick={() =>
+                                setEditing({ type: "edit", spaceId: b.space.id, row: r })
+                              }
+                              title="편집"
+                              aria-label="항목 편집"
+                              className="grid h-8 w-8 place-items-center rounded-full text-secondary transition-colors hover:bg-surface-container hover:text-primary"
                             >
-                              edit
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => removeItem(b.space.id, r.id)}
-                            title="삭제"
-                            aria-label="항목 삭제"
-                            className="text-secondary hover:text-error"
+                              <span
+                                aria-hidden="true"
+                                className="material-symbols-outlined text-[19px]"
+                              >
+                                edit
+                              </span>
+                            </button>
+                            <button
+                              onClick={() => removeItem(b.space.id, r.id)}
+                              title="삭제"
+                              aria-label="항목 삭제"
+                              className="grid h-8 w-8 place-items-center rounded-full text-secondary transition-colors hover:bg-surface-container hover:text-error"
+                            >
+                              <span
+                                aria-hidden="true"
+                                className="material-symbols-outlined text-[19px]"
+                              >
+                                close
+                              </span>
+                            </button>
+                          </>
+                        )}
+                        {/* 삭제 등 동작과 분리 — 열기(크게 보기) 디스클로저는 항상 행 끝 고정. */}
+                        <span
+                          aria-hidden="true"
+                          className="mx-0.5 h-5 w-px self-center bg-outline-variant/60"
+                        />
+                        <Link
+                          href={rowPath(mode, r.id)}
+                          title="크게 보기"
+                          aria-label="크게 보기"
+                          className="grid h-8 w-8 place-items-center rounded-full text-secondary transition-colors hover:bg-surface-container hover:text-primary"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="material-symbols-outlined text-[20px]"
                           >
-                            <span
-                              aria-hidden="true"
-                              className="material-symbols-outlined text-[20px]"
-                            >
-                              close
-                            </span>
-                          </button>
-                        </div>
-                      </td>
-                    )}
+                            chevron_right
+                          </span>
+                        </Link>
+                      </div>
+                    </td>
                   </tr>
                 ))}
 
