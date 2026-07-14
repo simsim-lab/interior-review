@@ -618,25 +618,11 @@ export default function SpaceView({
                       />
                     </td>
 
-                    {/* 행 동작 — 공유(모두)·편집/삭제(admin)·열기(모두)를 그룹 구분선으로 분리. */}
+                    {/* 행 동작 — 수정계열[편집·삭제](admin) │ 보기·공유계열[확대·공유](모두). */}
                     <td className="px-2 py-5 align-top">
                       <div className="flex items-center justify-end gap-1">
-                        <ShareButton
-                          path={rowPath(mode, r.id)}
-                          shareTitle={`${b.space.name} · ${
-                            (r.content || "").split("\n")[0].slice(0, 40) ||
-                            (isReq ? "요구사항" : "현재상태")
-                          }`}
-                          iconOnly
-                          label="이 행 공유"
-                          title="공유"
-                        />
                         {isAdmin && (
                           <>
-                            <span
-                              aria-hidden="true"
-                              className="mx-0.5 h-5 w-px self-center bg-outline-variant/60"
-                            />
                             <button
                               onClick={() =>
                                 setEditing({ type: "edit", spaceId: b.space.id, row: r })
@@ -662,16 +648,16 @@ export default function SpaceView({
                                 aria-hidden="true"
                                 className="material-symbols-outlined text-[19px]"
                               >
-                                close
+                                delete
                               </span>
                             </button>
+                            {/* 수정계열과 보기·공유계열 구분 — admin 에게만(뷰어는 확대·공유만). */}
+                            <span
+                              aria-hidden="true"
+                              className="mx-0.5 h-5 w-px self-center bg-outline-variant/60"
+                            />
                           </>
                         )}
-                        {/* 삭제 등 동작과 분리 — 열기(크게 보기)는 항상 행 끝 고정(확대 아이콘). */}
-                        <span
-                          aria-hidden="true"
-                          className="mx-0.5 h-5 w-px self-center bg-outline-variant/60"
-                        />
                         <Link
                           href={rowPath(mode, r.id)}
                           title="크게 보기"
@@ -685,6 +671,16 @@ export default function SpaceView({
                             open_in_full
                           </span>
                         </Link>
+                        <ShareButton
+                          path={rowPath(mode, r.id)}
+                          shareTitle={`${b.space.name} · ${
+                            (r.content || "").split("\n")[0].slice(0, 40) ||
+                            (isReq ? "요구사항" : "현재상태")
+                          }`}
+                          iconOnly
+                          label="이 행 공유"
+                          title="공유"
+                        />
                       </div>
                     </td>
                   </tr>
