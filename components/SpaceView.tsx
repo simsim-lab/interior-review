@@ -667,7 +667,7 @@ export default function SpaceView({
                             </button>
                           </>
                         )}
-                        {/* 삭제 등 동작과 분리 — 열기(크게 보기) 디스클로저는 항상 행 끝 고정. */}
+                        {/* 삭제 등 동작과 분리 — 열기(크게 보기)는 항상 행 끝 고정(확대 아이콘). */}
                         <span
                           aria-hidden="true"
                           className="mx-0.5 h-5 w-px self-center bg-outline-variant/60"
@@ -680,9 +680,9 @@ export default function SpaceView({
                         >
                           <span
                             aria-hidden="true"
-                            className="material-symbols-outlined text-[20px]"
+                            className="material-symbols-outlined text-[19px]"
                           >
-                            chevron_right
+                            open_in_full
                           </span>
                         </Link>
                       </div>

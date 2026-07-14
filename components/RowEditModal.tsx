@@ -86,6 +86,16 @@ export default function RowEditModal({
     return () => prev?.focus?.();
   }, []);
 
+  // 배경 스크롤 잠금 — 풀스크린(모바일)에서 배경 페이지가 밀리는 것 방지.
+  // Lightbox 와 동일 패턴이되, 상세(크게 보기) 위에서 열릴 수 있어 이전 값을 보존 후 복원.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   // ESC 는 문서 레벨로(포커스가 dialog 밖으로 빠져도 닫히게).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -188,7 +198,7 @@ export default function RowEditModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[130] flex flex-col justify-end bg-primary/40 sm:items-center sm:justify-center sm:p-4"
+      className="fixed inset-0 z-[130] flex flex-col justify-end overscroll-contain bg-primary/40 sm:items-center sm:justify-center sm:p-6"
       onClick={attemptClose}
     >
       <div
@@ -196,12 +206,12 @@ export default function RowEditModal({
         role="dialog"
         aria-modal="true"
         aria-label={mode === "add" ? "항목 추가" : "항목 편집"}
-        className="flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-surface-container-lowest shadow-lift sm:max-h-[85vh] sm:max-w-lg sm:rounded-xl"
+        className="flex h-dvh w-full flex-col rounded-none bg-surface-container-lowest shadow-lift sm:h-auto sm:min-h-[70vh] sm:max-h-[90vh] sm:max-w-2xl sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
         {/* 헤더 */}
-        <div className="flex items-center justify-between border-b border-outline-variant px-6 py-4">
+        <div className="flex items-center justify-between border-b border-outline-variant px-6 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 sm:pt-4">
           <h3 className="flex items-center gap-2 text-headline-md font-headline-md text-primary">
             <span
               aria-hidden="true"
@@ -225,7 +235,7 @@ export default function RowEditModal({
         </div>
 
         {/* 본문(스크롤) */}
-        <div className="custom-scrollbar flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
+        <div className="custom-scrollbar flex flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-6 py-5">
           <label className="flex flex-col gap-1.5">
             <span className="text-label-md font-label-md text-on-surface-variant">
               공간
@@ -267,7 +277,7 @@ export default function RowEditModal({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder={`${contentLabel} 내용을 입력하세요`}
-              className="field custom-scrollbar min-h-[38vh] w-full flex-1 resize-none sm:min-h-[140px]"
+              className="field custom-scrollbar min-h-[30dvh] w-full flex-1 resize-none sm:min-h-[220px]"
             />
           </label>
 
@@ -279,7 +289,7 @@ export default function RowEditModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="메모(선택)"
-              className="field custom-scrollbar min-h-[18vh] w-full resize-none sm:min-h-[92px]"
+              className="field custom-scrollbar min-h-[14dvh] w-full resize-none sm:min-h-[120px]"
             />
           </label>
 
@@ -291,7 +301,7 @@ export default function RowEditModal({
             <div className="flex flex-wrap items-center gap-1.5">
               {photos.map((p) => (
                 <span key={p.id} className="group relative">
-                  <span className="block h-14 w-14 overflow-hidden rounded-md border border-outline-variant">
+                  <span className="block h-14 w-14 sm:h-20 sm:w-20 overflow-hidden rounded-md border border-outline-variant">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={p.url}
@@ -326,7 +336,7 @@ export default function RowEditModal({
                 <span key={p.key} className="group relative">
                   <span
                     title={p.name}
-                    className="flex h-14 w-14 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md border border-dashed border-outline-variant bg-surface-container-low px-1 text-secondary"
+                    className="flex h-14 w-14 sm:h-20 sm:w-20 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md border border-dashed border-outline-variant bg-surface-container-low px-1 text-secondary"
                   >
                     <span
                       aria-hidden="true"
@@ -361,7 +371,7 @@ export default function RowEditModal({
                 disabled={photoBusy}
                 title="사진 추가"
                 aria-label={photoBusy ? "업로드 중" : "사진 추가"}
-                className="grid h-14 w-14 place-items-center rounded-md border border-dashed border-outline-variant text-secondary hover:border-primary hover:text-primary disabled:opacity-50"
+                className="grid h-14 w-14 sm:h-20 sm:w-20 place-items-center rounded-md border border-dashed border-outline-variant text-secondary hover:border-primary hover:text-primary disabled:opacity-50"
               >
                 {photoBusy ? (
                   <Spinner size={16} />
