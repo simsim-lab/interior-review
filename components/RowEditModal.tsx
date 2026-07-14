@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import type { Photo } from "@/lib/types";
 import Spinner from "./Spinner";
 
 export type RowEditValues = {
@@ -16,6 +17,12 @@ export type RowEditValues = {
  * - 모바일: 화면을 가득 채우는 바텀시트, 데스크탑: 가운데 다이얼로그.
  * - 저장 원칙: 입력 후 "확인" 클릭 시에만 반영·저장(즉시 저장).
  * - 값을 바꾼 뒤 취소/ESC/배경 클릭 시 "변경사항 버릴까요?" 1회 경고.
+ * - 사진:
+ *   · 편집 모드 — 기존 행에 즉시 업로드/삭제(테이블 셀과 동일 동작, onAddPhoto/onRemovePhoto).
+ *   · 추가 모드 — 행이 아직 없으므로 파일을 로컬에 담아뒀다가(파일명 타일로 표시) "확인" 시
+ *     onConfirm 의 두 번째 인자로 전달 → 호출부에서 행 생성 후 업로드.
+ *     (담아둔 파일로 미리보기 URL 을 만들지 않는다 — 파일→이미지 src 흐름을 아예 없애
+ *      XSS 정적분석 오탐 소지를 제거. 저장 후에는 실제 썸네일이 테이블/편집 모달에 표시됨.)
  * 접근성·구조는 SpaceManager 모달과 동일 패턴(Portal·ESC·Tab 트랩·포커스 복원).
  */
 export default function RowEditModal({
@@ -24,6 +31,9 @@ export default function RowEditModal({
   contentLabel,
   spaces,
   initial,
+  photos = [],
+  onAddPhoto,
+  onRemovePhoto,
   onConfirm,
   onClose,
 }: {
@@ -32,7 +42,10 @@ export default function RowEditModal({
   contentLabel: string; // "요구사항" | "현재 상태"
   spaces: { id: string; name: string }[];
   initial: RowEditValues;
-  onConfirm: (values: RowEditValues) => Promise<void>;
+  photos?: Photo[]; // 편집 모드: 이 행의 기존 사진(추가 모드는 비어 있음)
+  onAddPhoto?: (file: File) => Promise<void>; // 편집 모드: 즉시 업로드
+  onRemovePhoto?: (photoId: string) => Promise<void>; // 편집 모드: 즉시 삭제
+  onConfirm: (values: RowEditValues, pendingPhotos: File[]) => Promise<void>;
   onClose: () => void;
 }) {
   const [spaceId, setSpaceId] = useState(initial.spaceId);
@@ -40,13 +53,22 @@ export default function RowEditModal({
   const [content, setContent] = useState(initial.content);
   const [notes, setNotes] = useState(initial.notes);
   const [saving, setSaving] = useState(false);
+  // 추가 모드에서 아직 저장 안 된 사진(파일만 보관 — 미리보기 URL 은 만들지 않음).
+  const [pending, setPending] = useState<
+    { key: string; name: string; file: File }[]
+  >([]);
+  const [photoBusy, setPhotoBusy] = useState(false); // 편집 모드 즉시 업로드 중
+  const [removing, setRemoving] = useState<Set<string>>(new Set()); // 삭제 진행 중 사진 id
+  const keyRef = useRef(0);
+  const fileRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const dirty =
     spaceId !== initial.spaceId ||
     category !== initial.category ||
     content !== initial.content ||
-    notes !== initial.notes;
+    notes !== initial.notes ||
+    pending.length > 0;
 
   // 값을 바꿨을 때만 버릴지 물어본다. 저장 중에는 닫기 무시.
   const attemptClose = useMemo(
@@ -73,16 +95,64 @@ export default function RowEditModal({
     return () => document.removeEventListener("keydown", onKey);
   }, [attemptClose]);
 
+  // 파일 선택 → 편집 모드는 즉시 업로드, 추가 모드는 로컬 대기열에 담는다.
+  const onFiles = async (list: FileList) => {
+    const files = Array.from(list);
+    if (fileRef.current) fileRef.current.value = "";
+    if (files.length === 0) return;
+    if (mode === "add") {
+      setPending((prev) => [
+        ...prev,
+        ...files.map((file) => ({
+          key: `p${keyRef.current++}`,
+          name: file.name,
+          file,
+        })),
+      ]);
+      return;
+    }
+    if (!onAddPhoto) return;
+    setPhotoBusy(true);
+    try {
+      for (const file of files) await onAddPhoto(file);
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  // 기존 사진 삭제(편집 모드) — 연타 방지 + 진행 표시.
+  const removeExisting = async (id: string) => {
+    if (!onRemovePhoto || removing.has(id)) return;
+    setRemoving((s) => new Set(s).add(id));
+    try {
+      await onRemovePhoto(id);
+    } finally {
+      setRemoving((s) => {
+        const n = new Set(s);
+        n.delete(id);
+        return n;
+      });
+    }
+  };
+
+  // 대기 중 사진 제거(추가 모드).
+  const removePending = (key: string) => {
+    setPending((prev) => prev.filter((p) => p.key !== key));
+  };
+
   const submit = async () => {
     if (saving || !content.trim()) return;
     setSaving(true);
     try {
-      await onConfirm({
-        spaceId,
-        category: category.trim(),
-        content: content.trim(),
-        notes: notes.trim(),
-      });
+      await onConfirm(
+        {
+          spaceId,
+          category: category.trim(),
+          content: content.trim(),
+          notes: notes.trim(),
+        },
+        pending.map((p) => p.file)
+      );
       onClose();
     } catch {
       // onConfirm 내부에서 토스트로 알림 — 모달은 유지해 재시도 가능.
@@ -113,6 +183,8 @@ export default function RowEditModal({
   };
 
   if (typeof document === "undefined") return null;
+
+  const busy = saving || photoBusy;
 
   return createPortal(
     <div
@@ -210,6 +282,110 @@ export default function RowEditModal({
               className="field custom-scrollbar min-h-[18vh] w-full resize-none sm:min-h-[92px]"
             />
           </label>
+
+          {/* 사진 — 편집: 즉시 저장 / 추가: 확인 시 함께 업로드 */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-label-md font-label-md text-on-surface-variant">
+              사진
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {photos.map((p) => (
+                <span key={p.id} className="group relative">
+                  <span className="block h-14 w-14 overflow-hidden rounded-md border border-outline-variant">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.url}
+                      alt={p.caption ?? ""}
+                      width={56}
+                      height={56}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeExisting(p.id)}
+                    disabled={removing.has(p.id)}
+                    title="사진 삭제"
+                    aria-label="사진 삭제"
+                    className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-inverse-surface text-inverse-on-surface disabled:opacity-50"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="material-symbols-outlined text-[13px]"
+                    >
+                      close
+                    </span>
+                  </button>
+                </span>
+              ))}
+
+              {/* 아직 저장 안 된 사진은 파일→이미지 src 흐름을 피해 파일명 타일로만 표시. */}
+              {pending.map((p) => (
+                <span key={p.key} className="group relative">
+                  <span
+                    title={p.name}
+                    className="flex h-14 w-14 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md border border-dashed border-outline-variant bg-surface-container-low px-1 text-secondary"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="material-symbols-outlined text-[18px]"
+                    >
+                      image
+                    </span>
+                    <span className="w-full truncate text-center text-[9px] leading-tight">
+                      {p.name}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removePending(p.key)}
+                    title="사진 제거"
+                    aria-label="사진 제거"
+                    className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-inverse-surface text-inverse-on-surface"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="material-symbols-outlined text-[13px]"
+                    >
+                      close
+                    </span>
+                  </button>
+                </span>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={photoBusy}
+                title="사진 추가"
+                aria-label={photoBusy ? "업로드 중" : "사진 추가"}
+                className="grid h-14 w-14 place-items-center rounded-md border border-dashed border-outline-variant text-secondary hover:border-primary hover:text-primary disabled:opacity-50"
+              >
+                {photoBusy ? (
+                  <Spinner size={16} />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="material-symbols-outlined text-[18px]"
+                  >
+                    add_a_photo
+                  </span>
+                )}
+              </button>
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files) onFiles(e.target.files);
+              }}
+            />
+          </div>
         </div>
 
         {/* 푸터 — 모바일 바텀시트는 홈 인디케이터를 피해 safe-area 만큼 여백 추가 */}
@@ -223,7 +399,7 @@ export default function RowEditModal({
           </button>
           <button
             onClick={submit}
-            disabled={saving || !content.trim()}
+            disabled={busy || !content.trim()}
             className="flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-label-md font-label-md text-on-primary transition-all hover:opacity-90 active:scale-95 disabled:opacity-40"
           >
             {saving ? (

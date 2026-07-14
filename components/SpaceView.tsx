@@ -197,13 +197,15 @@ export default function SpaceView({
 
   // ─── 항목 ───
   // 모달 "확인" 시 호출 — 입력값(공간 포함)과 함께 새 행을 저장(빈 행 선삽입 없이 즉시 저장).
-  async function addRow(values: RowEditValues) {
+  // 모달에서 담아 온 사진(files)은 행 생성 후 그 행 FK 로 이어서 업로드한다.
+  async function addRow(values: RowEditValues, files: File[] = []) {
     // 대상 공간은 모달에서 선택. (혹시 모를 무효값은 첫 공간으로 폴백.)
     const target =
       data.find((b) => b.space.id === values.spaceId) ?? data[0];
     if (!target) return;
     const spaceId = target.space.id;
     const notes = values.notes || null;
+    let rowId: string;
     try {
       if (isReq) {
         const row = await insertRequirement({
@@ -213,6 +215,7 @@ export default function SpaceView({
           notes,
           sort: nextSort(target.requirements),
         });
+        rowId = row.id;
         setData((d) =>
           d.map((b) =>
             b.space.id === spaceId
@@ -227,6 +230,7 @@ export default function SpaceView({
           notes,
           sort: nextSort(target.currentStates),
         });
+        rowId = row.id;
         setData((d) =>
           d.map((b) =>
             b.space.id === spaceId
@@ -241,13 +245,35 @@ export default function SpaceView({
       notify(SAVE_ERR);
       throw new Error("add failed"); // 모달이 열린 채로 재시도할 수 있게 전파.
     }
+
+    // 행 생성 성공 후 담아 온 사진 업로드 — 사진 실패가 행 저장을 되돌리지 않도록 개별 처리.
+    // (실패해도 행은 남으므로 모달을 다시 띄우거나 테이블 셀에서 재업로드 가능.)
+    const baseSort = nextSort(target.photos);
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const photo = await uploadPhoto(
+          spaceId,
+          photoKind,
+          rowId,
+          files[i],
+          baseSort + i
+        );
+        setData((d) =>
+          d.map((b) =>
+            b.space.id === spaceId ? { ...b, photos: [...b.photos, photo] } : b
+          )
+        );
+      } catch {
+        notify("사진 업로드에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      }
+    }
   }
 
   // 모달 "확인"의 저장 처리 — 추가/편집 공통 진입점.
-  async function saveEdit(values: RowEditValues) {
+  async function saveEdit(values: RowEditValues, pendingPhotos: File[]) {
     if (!editing) return;
     if (editing.type === "add") {
-      await addRow(values);
+      await addRow(values, pendingPhotos);
       return;
     }
     // 편집: 내용 patch(낙관적 저장). category 는 요구사항에만 존재.
@@ -324,6 +350,13 @@ export default function SpaceView({
   }
 
   async function removeItem(spaceId: string, id: string) {
+    // 되돌릴 수 없으므로 확인. 사진이 딸려 있으면 함께 사라짐을 명시.
+    const photoCount = photosFor(id).length;
+    const msg =
+      photoCount > 0
+        ? `이 항목과 사진 ${photoCount}장을 삭제할까요? 되돌릴 수 없습니다.`
+        : "이 항목을 삭제할까요? 되돌릴 수 없습니다.";
+    if (!confirm(msg)) return;
     try {
       await deleteRow(itemTable, id);
       setData((d) =>
@@ -650,6 +683,15 @@ export default function SpaceView({
                   notes: "",
                 }
           }
+          photos={
+            editing.type === "edit" ? photosFor(editing.row.id) : undefined
+          }
+          onAddPhoto={
+            editing.type === "edit"
+              ? (file) => addPhoto(editing.spaceId, editing.row.id, file)
+              : undefined
+          }
+          onRemovePhoto={editing.type === "edit" ? removePhoto : undefined}
           onConfirm={saveEdit}
           onClose={() => setEditing(null)}
         />
