@@ -206,7 +206,7 @@ export default function RowEditModal({
         role="dialog"
         aria-modal="true"
         aria-label={mode === "add" ? "항목 추가" : "항목 편집"}
-        className="flex h-dvh w-full flex-col rounded-none bg-surface-container-lowest shadow-lift sm:h-auto sm:min-h-[70vh] sm:max-h-[90vh] sm:max-w-2xl sm:rounded-2xl"
+        className="flex h-dvh w-full flex-col rounded-none bg-surface-container-lowest shadow-lift sm:h-auto sm:min-h-[70vh] sm:max-h-[90vh] sm:max-w-[1008px] sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
@@ -236,62 +236,68 @@ export default function RowEditModal({
 
         {/* 본문(스크롤) */}
         <div className="custom-scrollbar flex flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-6 py-5">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-label-md font-label-md text-on-surface-variant">
-              공간
-            </span>
-            <select
-              value={spaceId}
-              onChange={(e) => setSpaceId(e.target.value)}
-              className="field w-full"
-            >
-              {spaces.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {isReq && (
-            <label className="flex flex-col gap-1.5">
+          {/* 공간·분류 — 데스크톱에선 넓어진 폭을 활용해 한 줄에 나란히(모바일은 세로 유지). */}
+          <div className="flex flex-col gap-5 sm:flex-row sm:gap-4">
+            <label className="flex flex-col gap-1.5 sm:flex-1">
               <span className="text-label-md font-label-md text-on-surface-variant">
-                분류
+                공간
               </span>
-              <input
-                autoFocus
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="예: 전기, 도장, 가구"
+              <select
+                value={spaceId}
+                onChange={(e) => setSpaceId(e.target.value)}
                 className="field w-full"
+              >
+                {spaces.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {isReq && (
+              <label className="flex flex-col gap-1.5 sm:flex-1">
+                <span className="text-label-md font-label-md text-on-surface-variant">
+                  분류
+                </span>
+                <input
+                  autoFocus
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="예: 전기, 도장, 가구"
+                  className="field w-full"
+                />
+              </label>
+            )}
+          </div>
+
+          {/* 내용·메모 — 자유서술은 가독폭(640px) 중앙 유지: 넓은 모달에서도 한 줄이 과도하게 길어지지 않게. */}
+          <div className="flex flex-1 flex-col gap-5 sm:mx-auto sm:w-full sm:max-w-[640px]">
+            <label className="flex flex-1 flex-col gap-1.5">
+              <span className="text-label-md font-label-md text-on-surface-variant">
+                {contentLabel}
+              </span>
+              <textarea
+                autoFocus={!isReq}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder={`${contentLabel} 내용을 입력하세요`}
+                className="field custom-scrollbar min-h-[30dvh] w-full flex-1 resize-none sm:min-h-[220px]"
               />
             </label>
-          )}
 
-          <label className="flex flex-1 flex-col gap-1.5">
-            <span className="text-label-md font-label-md text-on-surface-variant">
-              {contentLabel}
-            </span>
-            <textarea
-              autoFocus={!isReq}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={`${contentLabel} 내용을 입력하세요`}
-              className="field custom-scrollbar min-h-[30dvh] w-full flex-1 resize-none sm:min-h-[220px]"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1.5">
-            <span className="text-label-md font-label-md text-on-surface-variant">
-              메모
-            </span>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="메모(선택)"
-              className="field custom-scrollbar min-h-[14dvh] w-full resize-none sm:min-h-[120px]"
-            />
-          </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-label-md font-label-md text-on-surface-variant">
+                메모
+              </span>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="메모(선택)"
+                className="field custom-scrollbar min-h-[14dvh] w-full resize-none sm:min-h-[120px]"
+              />
+            </label>
+          </div>
 
           {/* 사진 — 편집: 즉시 저장 / 추가: 확인 시 함께 업로드 */}
           <div className="flex flex-col gap-1.5">
