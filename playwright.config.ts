@@ -50,7 +50,7 @@ export default defineConfig({
     {
       name: "public", // bypass OFF — 공개 페이지 + 접근 차단
       use: { baseURL: `http://localhost:${PUBLIC_PORT}` },
-      testMatch: /(routing|public-pages|checklist-access|loading)\.spec\.ts/,
+      testMatch: /(routing|public-pages|checklist-access|loading|share)\.spec\.ts/,
     },
     {
       name: "admin", // bypass ON — 관리자 화면/편집 (lightbox 는 사진 업로드가 admin 전용)
