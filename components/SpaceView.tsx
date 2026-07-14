@@ -1,6 +1,8 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type {
   SpaceBundle,
   PhotoKind,
@@ -11,8 +13,10 @@ import Footer from "./Footer";
 import Hero, { HeroChip } from "./Hero";
 import FilterMenu from "./FilterMenu";
 import PhotoCell from "./PhotoCell";
+import CopyLinkButton from "./CopyLinkButton";
 import RowEditModal, { type RowEditValues } from "./RowEditModal";
 import SpaceManager from "./SpaceManager";
+import { rowPath, spacePath } from "@/lib/share";
 import {
   requirementCategories,
   spaceSlugs,
@@ -81,7 +85,18 @@ export default function SpaceView({
   const cfg = MODE[mode];
   const isReq = mode === "requirement";
   const [data, setData] = useState<SpaceBundle[]>(bundles);
-  const [active, setActive] = useState<string>("all");
+
+  // 활성 공간 탭을 URL(?space=slug)에서 파생 — URL 이 단일 원본이라 탭 선택 시 링크가 바뀌고,
+  // 그 링크로 바로 진입하거나 뒤로가기 해도 탭이 자동으로 맞춰진다("전체"는 파라미터 없음).
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const active = searchParams.get("space") ?? "all";
+  const selectSpace = (slug: string) => {
+    router.replace(slug === "all" ? pathname : spacePath(mode, slug), {
+      scroll: false,
+    });
+  };
   const [showManager, setShowManager] = useState(false);
   // 행 편집 모달: 추가(빈 값) 또는 특정 행 편집.
   const [editing, setEditing] = useState<
@@ -454,7 +469,7 @@ export default function SpaceView({
               return (
                 <Fragment key={s.slug}>
                   <button
-                    onClick={() => setActive(s.slug)}
+                    onClick={() => selectSpace(s.slug)}
                     className={`relative flex items-center gap-1.5 py-4 text-label-md font-label-md whitespace-nowrap transition-colors ${
                       on
                         ? "text-primary font-bold active-tab-line"
@@ -486,23 +501,31 @@ export default function SpaceView({
             })}
           </nav>
 
-          {isAdmin && (
+          {(!isAll || isAdmin) && (
             <div className="flex shrink-0 items-center gap-2 sm:pb-3">
-              <button
-                onClick={() => setShowManager(true)}
-                className="flex items-center gap-1 border border-outline-variant text-primary px-4 py-2 rounded-lg text-label-md font-label-md hover:bg-surface-container-low active:scale-95 transition-all"
-              >
-                <span className="material-symbols-outlined text-[18px]">edit_location_alt</span>
-                공간 편집
-              </button>
-              {data.length > 0 && (
-                <button
-                  onClick={() => setEditing({ type: "add" })}
-                  className="flex items-center gap-1 bg-primary text-on-primary px-4 py-2 rounded-lg text-label-md font-label-md hover:opacity-90 active:scale-95 transition-all"
-                >
-                  <span className="material-symbols-outlined text-[18px]">add</span>
-                  {cfg.addLabel}
-                </button>
+              {/* 활성 공간(개별 탭)의 공유 링크 — 뷰어도 사용. "전체"에선 숨김. */}
+              {!isAll && (
+                <CopyLinkButton path={spacePath(mode, active)} label="공간 링크 복사" />
+              )}
+              {isAdmin && (
+                <>
+                  <button
+                    onClick={() => setShowManager(true)}
+                    className="flex items-center gap-1 border border-outline-variant text-primary px-4 py-2 rounded-lg text-label-md font-label-md hover:bg-surface-container-low active:scale-95 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">edit_location_alt</span>
+                    공간 편집
+                  </button>
+                  {data.length > 0 && (
+                    <button
+                      onClick={() => setEditing({ type: "add" })}
+                      className="flex items-center gap-1 bg-primary text-on-primary px-4 py-2 rounded-lg text-label-md font-label-md hover:opacity-90 active:scale-95 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">add</span>
+                      {cfg.addLabel}
+                    </button>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -568,8 +591,21 @@ export default function SpaceView({
                       </td>
                     )}
 
-                    <td className="px-6 py-5 align-top text-body-md text-on-surface-variant whitespace-pre-line">
-                      {r.content}
+                    <td className="px-6 py-5 align-top">
+                      {/* 내용 클릭 = 그 행만 크게 보기(= 공유 대상 페이지). 누구나 사용. */}
+                      <Link
+                        href={rowPath(mode, r.id)}
+                        title="크게 보기"
+                        className="group flex items-start gap-2 text-body-md text-on-surface-variant transition-colors hover:text-primary"
+                      >
+                        <span className="whitespace-pre-line">{r.content}</span>
+                        <span
+                          aria-hidden="true"
+                          className="material-symbols-outlined mt-0.5 shrink-0 text-[16px] text-secondary/50 transition-colors group-hover:text-primary"
+                        >
+                          open_in_full
+                        </span>
+                      </Link>
                     </td>
                     <td className="px-6 py-5 align-top text-body-md text-secondary whitespace-pre-line">
                       {r.notes || "—"}
@@ -587,6 +623,12 @@ export default function SpaceView({
                     {isAdmin && (
                       <td className="px-2 py-5 align-top">
                         <div className="flex items-center justify-center gap-1">
+                          <CopyLinkButton
+                            path={rowPath(mode, r.id)}
+                            iconOnly
+                            label="행 링크 복사"
+                            title="공유 링크 복사"
+                          />
                           <button
                             onClick={() =>
                               setEditing({ type: "edit", spaceId: b.space.id, row: r })
