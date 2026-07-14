@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "lint:tokens": "node scripts/check-design-tokens.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test lib/__tests__/*.test.ts",
     "test:e2e": "playwright test",

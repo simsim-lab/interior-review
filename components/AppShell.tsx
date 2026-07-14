@@ -60,7 +60,7 @@ export default function AppShell({
   return (
     <div className="flex min-h-screen bg-surface text-on-background">
       {/* ─── 모바일 상단바 ─── */}
-      <header className="fixed inset-x-0 top-0 z-40 flex items-center gap-3 bg-[#57462f] px-4 py-3 text-on-primary md:hidden">
+      <header className="fixed inset-x-0 top-0 z-40 flex items-center gap-3 bg-sidebar px-4 py-3 text-on-primary md:hidden">
         <button
           onClick={() => setMobileOpen(true)}
           className="rounded-full p-1.5 text-on-primary/80 transition-colors hover:bg-on-primary/10"
@@ -85,7 +85,7 @@ export default function AppShell({
 
       {/* ─── 사이드바 (딥 파인) ─── */}
       <aside
-        className={`fixed top-0 left-0 z-50 flex h-screen w-[280px] flex-col justify-between overflow-hidden bg-[#57462f] px-4 py-8 text-on-primary transition-transform duration-300 md:transition-[width,transform] ${
+        className={`fixed top-0 left-0 z-50 flex h-screen w-[280px] flex-col justify-between overflow-hidden bg-sidebar px-4 py-8 text-on-primary transition-transform duration-300 md:transition-[width,transform] ${
           collapsed ? "md:w-20" : "md:w-[280px]"
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >

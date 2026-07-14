@@ -39,6 +39,9 @@ const config: Config = {
         "on-primary-fixed-variant": "#5c4a36",
         "inverse-primary": "#e0c59b",
         "surface-tint": "#4a3a29",
+        // 사이드바/모바일 상단바 서피스 — primary(#4a3a29)보다 살짝 따뜻한 딥 파인.
+        // (primary 와 다른 별개 색이라 전용 토큰으로 둔다. 하드코딩 금지의 정본.)
+        sidebar: "#57462f",
         // ── Secondary: 뮤트 우드 토프 ─────────────────────
         secondary: "#7a6a52",
         "on-secondary": "#ffffff",
