@@ -44,6 +44,19 @@ body {
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
+/* Tailwind v4 preflight 는 <button> 의 커서를 default 로 리셋한다.
+   클릭 가능한 인터랙션 요소는 손가락(pointer) 커서로 되돌린다.
+   (disabled 요소는 제외 — UA 기본 커서 유지) */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label:has(> input[type="checkbox"]:not(:disabled)),
+label:has(> input[type="radio"]:not(:disabled)),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+summary {
+  cursor: pointer;
+}
+
 .rating-star:hover,
 .rating-star.active {
   color: var(--ochre);
