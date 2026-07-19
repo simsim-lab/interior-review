@@ -6,7 +6,9 @@ import type {
   Requirement,
   CurrentState,
   Photo,
+  Vendor,
   ChecklistItem,
+  ChecklistAnswer,
 } from "./types";
 
 export const SEED_SPACES: Space[] = [
@@ -68,26 +70,39 @@ export const SEED_REQUIREMENTS: Requirement[] = [
 export const SEED_CURRENT_STATES: CurrentState[] = [];
 export const SEED_PHOTOS: Photo[] = [];
 
+// 업체 — 상위 카테고리. 같은 체크리스트를 여러 업체에 재사용(계속 추가 가능).
+export const SEED_VENDORS: Vendor[] = [
+  { id: "vd-1", name: "업체 1", sort: 1 },
+  { id: "vd-2", name: "업체 2", sort: 2 },
+];
+
+// 평가 항목(질문) — 모든 업체 공유 템플릿. 답변(체크·별점·메모)은 SEED_ANSWERS 에.
 export const SEED_CHECKLIST: ChecklistItem[] = [
-  { id: "ck-1", title: "26' 7월~ 공부, 26' 12월~ 업체 미팅 시작 (3개월 전), 27' 1월 계약! (2개월 전), 공사는 6~7주(공사 기간은 넉넉하게, 줄이면 품질 하락)", checked: false, rating: 0, note: null, sort: 1 },
-  { id: "ck-2", title: "우리는 디자인? 올수리?", checked: false, rating: 0, note: null, sort: 2 },
-  { id: "ck-3", title: "한장 짜리 견적서는 피하고 모든 견적을 세세하게 표기한 견적서를 확인할 필요가 있다.", checked: false, rating: 0, note: "- 변기, 수전 등 항목에서는 제품까지 디테일하게!\n- 철거는 철거 대상 까지 자세하게 나열되어 있을 것!", sort: 3 },
-  { id: "ck-4", title: "단열, 방수, 배관 > 매우 중요!", checked: false, rating: 0, note: null, sort: 4 },
-  { id: "ck-5", title: "확장에 시스템 에어콘 + 샷시까지 쓰려면 평당 300.", checked: false, rating: 0, note: null, sort: 5 },
-  { id: "ck-6", title: "홈페이지 유무", checked: false, rating: 0, note: null, sort: 6 },
-  { id: "ck-7", title: "포트폴리오 업데이트 주기, 꾸준히 업데이트 되는지?", checked: false, rating: 0, note: null, sort: 7 },
-  { id: "ck-8", title: "지인 혹은 삼성 게시판 추천 업체", checked: false, rating: 0, note: null, sort: 8 },
-  { id: "ck-9", title: "AS시스템이 운영 중 인지 확인 (홈피에 존재하는지!)", checked: false, rating: 0, note: null, sort: 9 },
-  { id: "ck-10", title: "디자인에만 치중하지 않고 집의 정상적 기능 수행 및 실거주 입장에서 고려를 많이 하는지?", checked: false, rating: 0, note: null, sort: 10 },
-  { id: "ck-11", title: "오늘의집 최근 후기 보기", checked: false, rating: 0, note: null, sort: 11 },
-  { id: "ck-12", title: "현장 소장의 최대 관리 공사는 최대 2건으로 특약에 넣기", checked: false, rating: 0, note: null, sort: 12 },
-  { id: "ck-13", title: "법인에서 진행, 중소기업 현황정보시스템에서 재무 확인하기", checked: false, rating: 0, note: null, sort: 13 },
-  { id: "ck-14", title: "공사 매뉴얼 및 체크리스트 확인 그리고 일지도 확인가능한지문의", checked: false, rating: 0, note: null, sort: 14 },
-  { id: "ck-15", title: "3D 렌더링까지 되는지?", checked: false, rating: 0, note: null, sort: 15 },
-  { id: "ck-16", title: "디자인 요청서 양식이 있는지?", checked: false, rating: 0, note: null, sort: 16 },
-  { id: "ck-17", title: "지나친 레이아웃 변경은 지양", checked: false, rating: 0, note: "- 세탁기 관, 우수관, 변기관이 다 다른데 이거 옮겨도 되니? 안되는게 맞다. 반드시 시설 공사가 필요", sort: 17 },
-  { id: "ck-18", title: "히든도어 4년 썼는데 잘 된다더라~", checked: false, rating: 0, note: null, sort: 18 },
-  { id: "ck-19", title: "공개 주방생각보다 안튄다.", checked: false, rating: 0, note: null, sort: 19 },
-  { id: "ck-20", title: "후드 일체형 인덕션", checked: false, rating: 0, note: null, sort: 20 },
-  { id: "ck-21", title: "간접조명은 어찌 유지보수 하는지?", checked: false, rating: 0, note: null, sort: 21 },
+  { id: "ck-1", title: "26' 7월~ 공부, 26' 12월~ 업체 미팅 시작 (3개월 전), 27' 1월 계약! (2개월 전), 공사는 6~7주(공사 기간은 넉넉하게, 줄이면 품질 하락)", sort: 1 },
+  { id: "ck-2", title: "우리는 디자인? 올수리?", sort: 2 },
+  { id: "ck-3", title: "한장 짜리 견적서는 피하고 모든 견적을 세세하게 표기한 견적서를 확인할 필요가 있다.", sort: 3 },
+  { id: "ck-4", title: "단열, 방수, 배관 > 매우 중요!", sort: 4 },
+  { id: "ck-5", title: "확장에 시스템 에어콘 + 샷시까지 쓰려면 평당 300.", sort: 5 },
+  { id: "ck-6", title: "홈페이지 유무", sort: 6 },
+  { id: "ck-7", title: "포트폴리오 업데이트 주기, 꾸준히 업데이트 되는지?", sort: 7 },
+  { id: "ck-8", title: "지인 혹은 삼성 게시판 추천 업체", sort: 8 },
+  { id: "ck-9", title: "AS시스템이 운영 중 인지 확인 (홈피에 존재하는지!)", sort: 9 },
+  { id: "ck-10", title: "디자인에만 치중하지 않고 집의 정상적 기능 수행 및 실거주 입장에서 고려를 많이 하는지?", sort: 10 },
+  { id: "ck-11", title: "오늘의집 최근 후기 보기", sort: 11 },
+  { id: "ck-12", title: "현장 소장의 최대 관리 공사는 최대 2건으로 특약에 넣기", sort: 12 },
+  { id: "ck-13", title: "법인에서 진행, 중소기업 현황정보시스템에서 재무 확인하기", sort: 13 },
+  { id: "ck-14", title: "공사 매뉴얼 및 체크리스트 확인 그리고 일지도 확인가능한지문의", sort: 14 },
+  { id: "ck-15", title: "3D 렌더링까지 되는지?", sort: 15 },
+  { id: "ck-16", title: "디자인 요청서 양식이 있는지?", sort: 16 },
+  { id: "ck-17", title: "지나친 레이아웃 변경은 지양", sort: 17 },
+  { id: "ck-18", title: "히든도어 4년 썼는데 잘 된다더라~", sort: 18 },
+  { id: "ck-19", title: "공개 주방생각보다 안튄다.", sort: 19 },
+  { id: "ck-20", title: "후드 일체형 인덕션", sort: 20 },
+  { id: "ck-21", title: "간접조명은 어찌 유지보수 하는지?", sort: 21 },
+];
+
+// 업체별 답변(데모) — 항목 원본의 메모는 첫 업체(vd-1)의 답변으로 이관. 나머지는 미기록.
+export const SEED_ANSWERS: ChecklistAnswer[] = [
+  { id: "an-1", vendor_id: "vd-1", item_id: "ck-3", checked: false, rating: 0, note: "- 변기, 수전 등 항목에서는 제품까지 디테일하게!\n- 철거는 철거 대상 까지 자세하게 나열되어 있을 것!" },
+  { id: "an-2", vendor_id: "vd-1", item_id: "ck-17", checked: false, rating: 0, note: "- 세탁기 관, 우수관, 변기관이 다 다른데 이거 옮겨도 되니? 안되는게 맞다. 반드시 시설 공사가 필요" },
 ];

@@ -47,3 +47,23 @@ test("R14: 별점 클릭이 반영된다", async ({ page }) => {
   await firstItem.locator("span.rating-star").nth(3).click(); // 4번째 별
   await expect(firstItem.locator("span.rating-star.active")).toHaveCount(4);
 });
+
+// R15: 업체 드롭다운으로 여러 업체 전환 (seed: 업체 1·2)
+test("R15: 업체 드롭다운이 있고 seed 업체 2곳을 담는다", async ({ page }) => {
+  const select = page.getByLabel("평가할 업체 선택");
+  await expect(select).toBeVisible();
+  await expect(select.locator("option")).toHaveCount(2); // 업체 1, 업체 2
+  await expect(page.getByText("업체 2곳")).toBeVisible(); // Hero 칩
+});
+
+// R16: 같은 항목 템플릿, 답변(메모)은 업체별로 분리된다
+test("R16: 업체 전환 시 메모가 업체별로 분리된다", async ({ page }) => {
+  // seed: 3번째 항목(ck-3)의 메모는 업체 1 에만 있다.
+  const note3 = () => page.locator("div.lift").nth(2).locator("textarea");
+  await expect(note3()).toHaveValue(/변기, 수전/); // 업체 1 (기본 활성)
+  await page.getByLabel("평가할 업체 선택").selectOption({ label: "업체 2" });
+  await expect(page).toHaveURL(/\?vendor=/);
+  await expect(note3()).toHaveValue(""); // 업체 2 는 미기록
+  // 항목(질문) 자체는 공유 템플릿이라 그대로 21개
+  await expect(page.locator('input[type="checkbox"]')).toHaveCount(21);
+});

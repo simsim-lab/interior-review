@@ -39,13 +39,28 @@ export interface Photo {
   sort: number;
 }
 
+/** 업체 — 체크리스트로 평가할 대상. 상위 카테고리(계속 추가 가능). */
+export interface Vendor {
+  id: string;
+  name: string;
+  sort: number;
+}
+
+/** 평가 항목(질문) — 모든 업체가 공유하는 단일 템플릿. 답변은 여기 없다. */
 export interface ChecklistItem {
   id: string;
   title: string;
+  sort: number;
+}
+
+/** 업체별 답변 — (vendor_id, item_id) 당 하나. 없으면 미기록(기본값) 취급. */
+export interface ChecklistAnswer {
+  id: string;
+  vendor_id: string;
+  item_id: string;
   checked: boolean;
   rating: number; // 0~5
   note: string | null;
-  sort: number;
 }
 
 /** 공간 + 그 공간에 속한 요구사항/현재상태/사진을 묶은 뷰 모델 */

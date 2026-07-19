@@ -9,7 +9,9 @@ import {
   SEED_REQUIREMENTS,
   SEED_CURRENT_STATES,
   SEED_PHOTOS,
+  SEED_VENDORS,
   SEED_CHECKLIST,
+  SEED_ANSWERS,
 } from "../lib/seed";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -29,6 +31,9 @@ async function main() {
   // ── 완전 교체: 기존 데이터 비우기 ────────────────────────────────
   // spaces 삭제 시 requirements/current_state/photos 는 FK ON DELETE CASCADE 로 함께 삭제됨.
   {
+    // vendors 삭제 시 checklist_answers 는 FK ON DELETE CASCADE 로 함께 삭제됨.
+    const v = await sb.from("vendors").delete().neq("id", ALL);
+    if (v.error) throw v.error;
     const c = await sb.from("checklist_items").delete().neq("id", ALL);
     if (c.error) throw c.error;
     const s = await sb.from("spaces").delete().neq("id", ALL);
@@ -87,19 +92,44 @@ async function main() {
     if (ph.error) throw ph.error;
   }
 
-  const ck = await sb.from("checklist_items").insert(
-    SEED_CHECKLIST.map((c) => ({
-      title: c.title,
-      checked: c.checked,
-      rating: c.rating,
-      note: c.note,
-      sort: c.sort,
-    }))
-  );
-  if (ck.error) throw ck.error;
+  // 업체 → 항목 → 답변 순. seed 의 문자열 id 대신 재생성된 uuid 로 매핑해 답변 FK 를 잇는다.
+  const vendorIdBySeed: Record<string, string> = {};
+  for (const v of SEED_VENDORS) {
+    const { data, error } = await sb
+      .from("vendors")
+      .insert({ name: v.name, sort: v.sort })
+      .select("id")
+      .single();
+    if (error) throw error;
+    vendorIdBySeed[v.id] = data.id;
+  }
+
+  const itemIdBySeed: Record<string, string> = {};
+  for (const c of SEED_CHECKLIST) {
+    const { data, error } = await sb
+      .from("checklist_items")
+      .insert({ title: c.title, sort: c.sort })
+      .select("id")
+      .single();
+    if (error) throw error;
+    itemIdBySeed[c.id] = data.id;
+  }
+
+  if (SEED_ANSWERS.length) {
+    const an = await sb.from("checklist_answers").insert(
+      SEED_ANSWERS.map((a) => ({
+        vendor_id: vendorIdBySeed[a.vendor_id],
+        item_id: itemIdBySeed[a.item_id],
+        checked: a.checked,
+        rating: a.rating,
+        note: a.note,
+      }))
+    );
+    if (an.error) throw an.error;
+  }
 
   console.log(
-    `seed 적재 완료 — 공간 ${SEED_SPACES.length}, 요구사항 ${SEED_REQUIREMENTS.length}, 체크리스트 ${SEED_CHECKLIST.length}`
+    `seed 적재 완료 — 공간 ${SEED_SPACES.length}, 요구사항 ${SEED_REQUIREMENTS.length}, 업체 ${SEED_VENDORS.length}, 체크리스트 ${SEED_CHECKLIST.length}, 답변 ${SEED_ANSWERS.length}`
   );
 }
 

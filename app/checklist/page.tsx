@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/auth";
-import { getChecklist } from "@/lib/data";
+import { getChecklistData } from "@/lib/data";
 import ChecklistView from "@/components/ChecklistView";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +10,6 @@ export default async function ChecklistPage() {
   if (!(await isAdmin())) {
     redirect("/login?next=/checklist");
   }
-  const items = await getChecklist();
-  return <ChecklistView items={items} />;
+  const { vendors, items, answers } = await getChecklistData();
+  return <ChecklistView vendors={vendors} items={items} answers={answers} />;
 }
