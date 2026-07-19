@@ -6,6 +6,7 @@ import type {
   CurrentState,
   Photo,
   Space,
+  Vendor,
   ChecklistItem,
 } from "./types";
 import { newId, nextSort } from "./util";
@@ -134,7 +135,35 @@ export async function uploadPhoto(
   return data as Photo;
 }
 
-// ─── 체크리스트 (admin 전용) ────────────────────────────────────────────────
+// ─── 업체 (admin 전용) ──────────────────────────────────────────────────────
+export async function insertVendor(name: string, sort: number): Promise<Vendor> {
+  if (!canPersist) return { id: newId(), name, sort };
+  const { data, error } = await sb()
+    .from("vendors")
+    .insert({ name, sort })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as Vendor;
+}
+
+export async function updateVendor(
+  id: string,
+  patch: Record<string, unknown>
+): Promise<void> {
+  if (!canPersist) return;
+  const { error } = await sb().from("vendors").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+// 업체 삭제 시 그 업체의 답변(checklist_answers)은 FK ON DELETE CASCADE 로 함께 삭제됨.
+export async function deleteVendor(id: string): Promise<void> {
+  if (!canPersist) return;
+  const { error } = await sb().from("vendors").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ─── 체크리스트 항목(공유 템플릿, admin 전용) ────────────────────────────────
 export async function insertChecklistItem(
   row: Omit<ChecklistItem, "id">
 ): Promise<ChecklistItem> {
@@ -157,8 +186,26 @@ export async function updateChecklistItem(
   if (error) throw error;
 }
 
+// 항목 삭제 시 모든 업체의 해당 답변도 FK ON DELETE CASCADE 로 함께 삭제됨.
 export async function deleteChecklistItem(id: string): Promise<void> {
   if (!canPersist) return;
   const { error } = await sb().from("checklist_items").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ─── 업체별 답변(admin 전용) — (vendor_id, item_id) 유니크 upsert ─────────────
+// 답변 전체값(checked·rating·note)을 함께 보내 부분 upsert 로 다른 필드가 덮이지 않게 한다.
+export async function upsertChecklistAnswer(
+  vendorId: string,
+  itemId: string,
+  answer: { checked: boolean; rating: number; note: string | null }
+): Promise<void> {
+  if (!canPersist) return;
+  const { error } = await sb()
+    .from("checklist_answers")
+    .upsert(
+      { vendor_id: vendorId, item_id: itemId, ...answer },
+      { onConflict: "vendor_id,item_id" }
+    );
   if (error) throw error;
 }
