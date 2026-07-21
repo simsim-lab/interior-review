@@ -39,7 +39,7 @@ test("checklistStats: 평가 없으면 average '—'", () => {
 });
 
 // ─── composeRows: 공유 템플릿 + 업체별 답변 합성 ───────────────────────────
-const tmpl = (id: string, sort: number): ChecklistItem => ({ id, title: id, sort });
+const tmpl = (id: string, sort: number): ChecklistItem => ({ id, title: id, body: "", sort });
 const ans = (p: Partial<ChecklistAnswer>): ChecklistAnswer => ({
   id: `a-${p.vendor_id}-${p.item_id}`,
   vendor_id: "v1",

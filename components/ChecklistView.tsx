@@ -150,11 +150,34 @@ export default function ChecklistView({
     }
   }
 
+  // 본문(공통) 편집 — 제목과 동일 패턴. 모든 업체가 같은 값을 본다.
+  async function persistBody(id: string, body: string) {
+    const before = itemList.find((it) => it.id === id) as
+      | Record<string, unknown>
+      | undefined;
+    const revert = revertPatch<ChecklistItem>(before, { body });
+    setItemList((prev) => prev.map((it) => (it.id === id ? { ...it, body } : it)));
+    if (!canPersist) return;
+    setSaving(id);
+    try {
+      await updateChecklistItem(id, { body });
+    } catch {
+      if (revert)
+        setItemList((prev) =>
+          prev.map((it) => (it.id === id ? { ...it, ...revert } : it))
+        );
+      notify(SAVE_ERR);
+    } finally {
+      setSaving(null);
+    }
+  }
+
   async function addItem() {
     setAdding(true);
     try {
       const item = await insertChecklistItem({
         title: "",
+        body: "",
         sort: nextSort(itemList),
       });
       setItemList((prev) => [...prev, item]);
@@ -373,6 +396,26 @@ export default function ChecklistView({
                           </button>
                         </div>
                       </div>
+                      {/* 본문(공통) — 모든 업체가 같은 값을 본다. 업체 전환해도 안 바뀜. */}
+                      <span className="flex items-center gap-1 text-label-md font-label-md text-secondary mb-1">
+                        <span className="material-symbols-outlined text-[16px]">
+                          public
+                        </span>
+                        모든 업체 공통
+                      </span>
+                      <AutoTextarea
+                        defaultValue={item.body}
+                        onBlur={(e) => persistBody(item.id, e.target.value)}
+                        placeholder="모든 업체에 공통으로 보이는 본문..."
+                        className="field w-full min-h-[60px] mb-4"
+                      />
+                      {/* 커멘트(업체별) — 선택된 업체 전용. 업체 전환 시 바뀜. */}
+                      <span className="flex items-center gap-1 text-label-md font-label-md text-secondary mb-1">
+                        <span className="material-symbols-outlined text-[16px]">
+                          storefront
+                        </span>
+                        <span className="truncate">{activeVendor.name}</span> 커멘트
+                      </span>
                       <AutoTextarea
                         defaultValue={note ?? ""}
                         onBlur={(e) => persistAnswer(item.id, { note: e.target.value })}

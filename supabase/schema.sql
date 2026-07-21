@@ -61,11 +61,15 @@ create table if not exists vendors (
 
 -- ─── 체크리스트 항목 (admin 전용 — 모든 업체 공유 템플릿, 업체에게 절대 노출 금지) ──
 -- 답변(체크·별점·메모)은 여기가 아니라 checklist_answers 에 업체별로 저장한다.
+-- title(제목)·body(본문)는 모든 업체 공통 콘텐츠. 업체별 값(커멘트)은 checklist_answers.note.
 create table if not exists checklist_items (
   id       uuid primary key default gen_random_uuid(),
   title    text not null default '',
+  body     text not null default '',
   sort     int not null default 0
 );
+-- 기존 DB 마이그레이션(테이블이 이미 있을 때) — 본문 컬럼 추가는 멱등.
+alter table checklist_items add column if not exists body text not null default '';
 
 -- 기존 DB 마이그레이션: 예전 checklist_items 는 답변(checked/rating/note)을 직접
 -- 갖고 있었다. 그 컬럼이 아직 있으면 → 기본 업체 '업체 1' 을 만들어 답변을 옮기고
