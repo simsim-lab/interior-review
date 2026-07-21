@@ -274,7 +274,8 @@ export default function ChecklistView({
                 id="vendor-select"
                 value={activeId}
                 onChange={(e) => selectVendor(e.target.value)}
-                disabled={vendorList.length === 0}
+                disabled={vendorList.length === 0 || switching}
+                aria-busy={switching}
                 title={activeVendor?.name}
                 aria-label="평가할 업체 선택"
                 className="space-select disabled:opacity-40"
