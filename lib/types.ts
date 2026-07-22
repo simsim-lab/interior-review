@@ -46,10 +46,12 @@ export interface Vendor {
   sort: number;
 }
 
-/** 평가 항목(질문) — 모든 업체가 공유하는 단일 템플릿. 답변은 여기 없다. */
+/** 평가 항목(질문) — 모든 업체가 공유하는 단일 템플릿. 답변은 여기 없다.
+ *  title(제목)·body(본문) 둘 다 공통 콘텐츠. 업체별 값(커멘트)은 ChecklistAnswer.note. */
 export interface ChecklistItem {
   id: string;
   title: string;
+  body: string;
   sort: number;
 }
 

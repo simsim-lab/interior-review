@@ -59,7 +59,9 @@ test("R15: 업체 드롭다운이 있고 seed 업체 2곳을 담는다", async (
 // R16: 같은 항목 템플릿, 답변(메모)은 업체별로 분리된다
 test("R16: 업체 전환 시 메모가 업체별로 분리된다", async ({ page }) => {
   // seed: 3번째 항목(ck-3)의 메모는 업체 1 에만 있다.
-  const note3 = () => page.locator("div.lift").nth(2).locator("textarea");
+  // 행마다 textarea 가 2개(공통 본문 + 업체별 메모)라 메모칸을 placeholder 로 특정한다.
+  const note3 = () =>
+    page.locator("div.lift").nth(2).getByPlaceholder("미팅 메모...");
   await expect(note3()).toHaveValue(/변기, 수전/); // 업체 1 (기본 활성)
   await page.getByLabel("평가할 업체 선택").selectOption({ label: "업체 2" });
   await expect(page).toHaveURL(/\?vendor=/);
