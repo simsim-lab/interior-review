@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Vendor, ChecklistItem, ChecklistAnswer } from "@/lib/types";
 import {
@@ -67,9 +67,14 @@ export default function ChecklistView({
   const activeVendor =
     vendorList.find((v) => v.id === wanted) ?? vendorList[0] ?? null;
   const activeId = activeVendor?.id ?? "";
+  // 업체 전환은 RSC 재요청(force-dynamic)을 유발 — 완료까지 스피너를 띄워 멈춘 듯 보이지
+  // 않게 한다(AppShell 로그아웃과 동일 양식: useTransition + Spinner).
+  const [switching, startSwitch] = useTransition();
   const selectVendor = (id: string) => {
-    router.replace(`${pathname}?vendor=${encodeURIComponent(id)}`, {
-      scroll: false,
+    startSwitch(() => {
+      router.replace(`${pathname}?vendor=${encodeURIComponent(id)}`, {
+        scroll: false,
+      });
     });
   };
 
@@ -269,7 +274,8 @@ export default function ChecklistView({
                 id="vendor-select"
                 value={activeId}
                 onChange={(e) => selectVendor(e.target.value)}
-                disabled={vendorList.length === 0}
+                disabled={vendorList.length === 0 || switching}
+                aria-busy={switching}
                 title={activeVendor?.name}
                 aria-label="평가할 업체 선택"
                 className="space-select disabled:opacity-40"
@@ -282,6 +288,15 @@ export default function ChecklistView({
                   </option>
                 ))}
               </select>
+              {switching && (
+                <span
+                  role="status"
+                  className="flex items-center gap-1.5 text-label-md font-label-md text-secondary"
+                >
+                  <Spinner size={14} />
+                  전환 중…
+                </span>
+              )}
             </div>
             <button
               onClick={() => setShowManager(true)}
